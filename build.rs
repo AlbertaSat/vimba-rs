@@ -2,8 +2,14 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    println!("cargo:rustc-link-lib=/opt/VimbaX_2025-2/api/lib/libVmbC.so");
-    unsafe{ std::env::set_var("BINDGEN_EXTRA_CLANG_ARGS", "-I\"/opt/VimbaX_2025-2/api/include\"") };
+    println!("cargo:rustc-link-search=/opt/VimbaX_2025-2/api/lib");
+    println!("cargo:rustc-link-lib=VmbC");
+    unsafe {
+        std::env::set_var(
+            "BINDGEN_EXTRA_CLANG_ARGS",
+            "-I\"/opt/VimbaX_2025-2/api/include\"",
+        );
+    };
 
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
@@ -22,6 +28,4 @@ fn main() {
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
-
-
 }
