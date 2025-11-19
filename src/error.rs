@@ -1,14 +1,8 @@
-use super::ffi::*;
-use std::{mem, ptr};
-use strum::FromRepr;
 use thiserror::Error;
+use strum::FromRepr;
+use crate::ffi::*;
 
-#[derive(Debug, Copy, Clone)]
-pub struct VmbVersion {
-    pub major: u32,
-    pub minor: u32,
-    pub patch: u32,
-}
+pub type VmbResult<T> = Result<T, VmbError>;
 
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Error, FromRepr)]
@@ -91,29 +85,4 @@ pub enum VmbError {
     InsufficientBufferCount = VmbErrorType_VmbErrorInsufficientBufferCount,
     #[error("Custom")]
     Custom = VmbErrorType_VmbErrorCustom,
-}
-
-pub fn vmb_version_query() -> Result<VmbVersion, VmbError> {
-    let mut version_raw = VmbVersionInfo_t {
-        major: 0,
-        minor: 0,
-        patch: 0,
-    };
-
-    let err = unsafe {
-        let version_raw_mut_ptr = ptr::from_mut(&mut version_raw);
-        VmbVersionQuery(
-            version_raw_mut_ptr,
-            mem::size_of::<VmbVersionInfo_t>() as VmbUint32_t,
-        )
-    };
-
-    match VmbError::from_repr(err) {
-        Some(e) => Err(e),
-        None => Ok(VmbVersion {
-            major: version_raw.major,
-            minor: version_raw.minor,
-            patch: version_raw.patch,
-        }),
-    }
 }
