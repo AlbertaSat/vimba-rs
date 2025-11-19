@@ -1,4 +1,6 @@
 pub mod api;
+mod utils;
+mod error;
 
 mod ffi {
     #![allow(non_upper_case_globals)]
