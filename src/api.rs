@@ -501,3 +501,92 @@ pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
         .collect::<VmbResult<Vec<FeatureInfo>>>()
 }
 
+pub fn feature_info_query() 
+
+pub fn feature_access_query()
+
+pub fn list_feature_selected()
+
+pub fn feature_int_get()
+
+pub fn feature_int_set()
+
+pub fn feature_int_range_query()
+
+pub fn feature_int_increment_query()
+
+pub fn feature_int_valid_value_set_query()
+
+pub fn feature_float_get()
+
+pub fn feature_float_set()
+
+pub fn feature_float_range_query()
+
+pub fn feature_enum_get()
+
+pub fn feature_enum_set()
+
+pub fn feature_enum_range_query()
+
+pub fn feature_enum_is_available()
+
+pub fn feature_enum_as_int()
+
+pub fn feature_enum_as_string()
+
+pub fn feature_enum_entry_get()
+
+pub fn feature_string_get()
+
+pub fn feature_string_set()
+
+pub fn feature_string_max_length_query()
+
+pub fn feature_bool_get()
+
+pub fn feature_bool_set()
+
+pub fn feature_command_run()
+
+pub fn feature_command_is_done()
+
+pub fn feature_raw_get()
+
+pub fn feature_raw_set()
+
+pub fn feature_raw_length_query()
+
+pub fn feature_invalidation_register()
+
+pub fn feature_invalidation_unregister()
+
+pub fn frame_announce()
+
+pub fn frame_revoke()
+
+pub fn frame_revoke_all()
+
+pub fn capture_start()
+
+pub fn capture_end()
+
+pub fn capture_frame_queue()
+
+pub fn capture_frame_wait()
+
+pub fn capture_queue_flush()
+
+pub fn memory_read()
+
+pub fn memory_write()
+
+pub fn registers_read()
+
+pub fn registers_write()
+
+pub fn camera_settings_save()
+
+pub fn camera_settings_load()
+
+pub fn chunk_data_access()
