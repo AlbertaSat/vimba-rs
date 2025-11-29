@@ -1,6 +1,6 @@
 use super::{error::*, ffi::*, utils::*};
 use std::{
-    ffi::{self, CString},
+    ffi::{self, CStr, CString},
     mem::{self, MaybeUninit},
     ptr,
 };
@@ -530,15 +530,45 @@ pub fn feature_int_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<Featu
 
 // pub fn feature_int_valid_value_set_query()
 
-pub fn feature_float_get(hadle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+pub fn feature_float_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut value: f64 = 0;
 
+    vmb_result( unsafe {
+        VmbFeatureFloatGet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut value,
+        )
+    })?;
+
+    Ok(value)
 }
 
 // pub fn feature_float_set()
 
 // pub fn feature_float_range_query()
 
-// pub fn feature_enum_get()
+pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut value: *const std::os::raw::c_char = std::ptr::null();
+
+    vmb_result( unsafe {
+        VmbFeatureEnumGet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut value,
+        )
+    })?;
+
+    if value.is_null() {
+        return Err(VmbError::BadParameter)
+    }
+
+    let value = unsafe { CStr::from_ptr(value) }.to_string_lossy().into_owned();
+
+    Ok(value)
+}
 
 // pub fn feature_enum_set()
 
@@ -558,7 +588,20 @@ pub fn feature_float_get(hadle: &CameraHandle, name: &str) -> VmbResult<Vec<Feat
 
 // pub fn feature_string_max_length_query()
 
-// pub fn feature_bool_get()
+pub fn feature_bool_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut value = False as VmbBool_t;
+
+    vmb_result( unsafe {
+        VmbFeatureBoolGet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut value,
+        )
+    })?;
+
+    Ok(value)
+}
 
 // pub fn feature_bool_set()
 
