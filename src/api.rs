@@ -522,7 +522,20 @@ pub fn feature_int_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<Featu
     Ok(value)
 }
 
-// pub fn feature_int_set()
+pub fn feature_int_set(handle: &CameraHandle, name: &str, value: i64) -> VmbResult<Vec<FeatureInfo>> {
+    let value = value as VmbInt64_t;
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
+
+    vmb_result(unsafe {
+        VmbFeatureIntSet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            value,
+        )
+    })?;
+
+    Ok(())
+}
 
 // pub fn feature_int_range_query()
 
