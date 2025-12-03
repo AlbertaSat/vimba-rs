@@ -621,9 +621,35 @@ pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) {
 
 // pub fn feature_enum_entry_get()
 
-// pub fn feature_string_get()
+pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut value = String::new();    
+    
+    vmb_result(unsafe {
+        VmbFeatureStringGet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut value,
+        )
+    })?;
 
-// pub fn feature_string_set()
+    Ok(value)
+}
+
+pub fn feature_string_set(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<Vec<FeatureInfo>> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let feature_value = CString::new(value).map_err(|_| VmbError::BadHandle)?;
+
+    vmb_result(unsafe {
+        VmbFeatureStringSet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            feature_value.as_ptr(),
+        )
+    })?;
+
+    Ok(())
+}
 
 // pub fn feature_string_max_length_query()
 
