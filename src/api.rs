@@ -636,7 +636,7 @@ pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<Fe
     Ok(value)
 }
 
-pub fn feature_string_set(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<Vec<FeatureInfo>> {
+pub fn feature_string_set(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<()> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
     let feature_value = CString::new(value).map_err(|_| VmbError::BadHandle)?;
 
