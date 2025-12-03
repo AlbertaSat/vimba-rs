@@ -1,6 +1,6 @@
 use super::{error::*, ffi::*, utils::*};
 use std::{
-    ffi::{self, CStr, CString},
+    ffi,
     mem::{self, MaybeUninit},
     ptr,
 };
