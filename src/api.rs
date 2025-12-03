@@ -530,7 +530,7 @@ pub fn feature_int_set(handle: &CameraHandle, name: &str, value: i64) -> VmbResu
         VmbFeatureIntSet(
             handle.as_raw(),
             feature_name.as_ptr(),
-            value,
+            &value,
         )
     })?;
 
@@ -632,6 +632,12 @@ pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<Fe
             &mut value,
         )
     })?;
+
+    if value.is_null() {
+        return Err(VmbError::BadParameter)
+    }
+
+    let value = unsafe { CStr::from_ptr(value) }.to_string_lossy().into_owned();
 
     Ok(value)
 }
