@@ -595,7 +595,21 @@ pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<Feat
     Ok(value)
 }
 
-// pub fn feature_enum_set()
+pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let feature_value = CString::new(value).map_err(|_| VmbError::BadHandle)?;
+
+    vmb_result(unsafe {
+        VmbFeatureBoolSet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &feature_value.as_ptr(),
+        )
+    })?;
+
+    Ok(())
+
+}
 
 // pub fn feature_enum_range_query()
 
