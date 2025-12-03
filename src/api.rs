@@ -522,7 +522,7 @@ pub fn feature_int_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<Featu
     Ok(value)
 }
 
-pub fn feature_int_set(handle: &CameraHandle, name: &str, value: i64) -> VmbResult<Vec<FeatureInfo>> {
+pub fn feature_int_set(handle: &CameraHandle, name: &str, value: i64) -> VmbResult<()> {
     let value = value as VmbInt64_t;
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
 
@@ -551,14 +551,26 @@ pub fn feature_float_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<Fea
         VmbFeatureFloatGet(
             handle.as_raw(),
             feature_name.as_ptr(),
-            &mut value,
+            &value,
         )
     })?;
 
     Ok(value)
 }
 
-// pub fn feature_float_set()
+pub fn feature_float_set(handle: &CameraHandle, name: &str, value: f64) -> VmbResult<()> {
+    let feature_name=  CString::new(name).map_err(|_| VmbError::BadHandle)?;
+
+    vmb_result( unsafe {
+        VmbFeatureFloatSet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &value,
+        )
+    })?;
+
+    Ok(())
+}
 
 // pub fn feature_float_range_query()
 
@@ -616,7 +628,23 @@ pub fn feature_bool_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<Feat
     Ok(value)
 }
 
-// pub fn feature_bool_set()
+pub fn feature_bool_set(handle: &CameraHandle, name: &str, value: bool) -> VmbResult<()> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let feature_value = match value {
+        true => VmbBoolTrue,
+        false => VmbBoolFalse,
+    };
+
+    vmb_result( unsafe {
+        VmbFeatureBoolSet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &value,
+        )
+    })?;
+
+    Ok(())
+}
 
 // pub fn feature_command_run()
 
