@@ -1,6 +1,6 @@
 use super::{error::*, ffi::*, utils::*};
 use std::{
-    ffi,
+    ffi::{self, CStr, c_char},
     mem::{self, MaybeUninit},
     ptr,
 };
@@ -587,7 +587,7 @@ pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String, 
     })?;
 
     if value.is_null() {
-        return Err(VmbError::BadParameter)
+        return Err(VmbError::NoData)
     }
 
     let value = unsafe { CStr::from_ptr(value) }.to_string_lossy().into_owned();
@@ -623,23 +623,20 @@ pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) {
 
 pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<String, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
-    let mut value = String::new();    
-    
+    let mut value_buffer = vec![0u8; 1024];
+
     vmb_result(unsafe {
         VmbFeatureStringGet(
             handle.as_raw(),
             feature_name.as_ptr(),
-            &mut value,
+            value_buffer.as_mut_ptr() as *mut c_char,
+            value_buffer.len() as u32,
+            std::ptr::null_mut(),       // Change to sizeFilled pointer if desired
         )
     })?;
 
-    if value.is_null() {
-        return Err(VmbError::BadParameter)
-    }
-
-    let value = unsafe { CStr::from_ptr(value) }.to_string_lossy().into_owned();
-
-    Ok(value)
+    let value = unsafe { CStr::from_ptr(value_buffer.as_ptr() as *const c_char) };
+    Ok(value.to_string_lossy().into_owned())
 }
 
 pub fn feature_string_set(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<()> {
