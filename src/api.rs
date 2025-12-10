@@ -507,7 +507,7 @@ pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
 
 // pub fn list_feature_selected()
 
-pub fn feature_int_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+pub fn feature_int_get(handle: &CameraHandle, name: &str) -> VmbResult<i64, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value = 0 as VmbInt64_t;
 
@@ -543,7 +543,7 @@ pub fn feature_int_set(handle: &CameraHandle, name: &str, value: i64) -> VmbResu
 
 // pub fn feature_int_valid_value_set_query()
 
-pub fn feature_float_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+pub fn feature_float_get(handle: &CameraHandle, name: &str) -> VmbResult<f64, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
     let mut value: f64 = 0;
 
@@ -574,7 +574,7 @@ pub fn feature_float_set(handle: &CameraHandle, name: &str, value: f64) -> VmbRe
 
 // pub fn feature_float_range_query()
 
-pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
     let mut value: *const std::os::raw::c_char = std::ptr::null();
 
@@ -621,7 +621,7 @@ pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) {
 
 // pub fn feature_enum_entry_get()
 
-pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<String, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
     let mut value = String::new();    
     
@@ -659,7 +659,7 @@ pub fn feature_string_set(handle: &CameraHandle, name: &str, value: &str) -> Vmb
 
 // pub fn feature_string_max_length_query()
 
-pub fn feature_bool_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+pub fn feature_bool_get(handle: &CameraHandle, name: &str) -> VmbResult<bool, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
     let mut value = False as VmbBool_t;
 
