@@ -453,35 +453,6 @@ pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
         return Ok(Vec::new());
     }
 
-    fn convert_feature_info_safe(
-        camera: mem::MaybeUninit<VmbFeatureInfo_t>,
-    ) -> VmbResult<FeatureInfo> {
-        let feature = unsafe { camera.assume_init() };
-
-        Ok(FeatureInfo {
-            name: string_from_raw(feature.name).map_err(|_| VmbError::InternalFault)?,
-            category: string_from_raw(feature.category).map_err(|_| VmbError::InternalFault)?,
-            display_name: string_from_raw(feature.displayName)
-                .map_err(|_| VmbError::InternalFault)?,
-            tool_tip: string_from_raw(feature.tooltip).map_err(|_| VmbError::InternalFault)?,
-            description: string_from_raw(feature.description)
-                .map_err(|_| VmbError::InternalFault)?,
-            namespace: string_from_raw(feature.sfncNamespace)
-                .map_err(|_| VmbError::InternalFault)?,
-            unit: string_from_raw(feature.unit).map_err(|_| VmbError::InternalFault)?,
-            representation: string_from_raw(feature.representation)
-                .map_err(|_| VmbError::InternalFault)?,
-            data_type: FeatureDataType::from_repr(feature.featureDataType)
-                .ok_or(VmbError::InternalFault)?,
-            flags: FeatureFlags::from_repr(feature.featureFlags).ok_or(VmbError::InternalFault)?,
-            polling_time: feature.pollingTime,
-            visibility: FeatureVisibility::from_repr(feature.visibility)
-                .ok_or(VmbError::InternalFault)?,
-            is_streamable: feature.isStreamable & 0x01 == 1,
-            has_selected_features: feature.hasSelectedFeatures & 0x01 == 1,
-        })
-    }
-
     let mut features_raw: Vec<mem::MaybeUninit<VmbFeatureInfo_t>> =
         vec![mem::MaybeUninit::uninit(); found as usize];
 
@@ -501,7 +472,50 @@ pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
         .collect::<VmbResult<Vec<FeatureInfo>>>()
 }
 
-// pub fn feature_info_query() 
+fn convert_feature_info_safe(camera: mem::MaybeUninit<VmbFeatureInfo_t>,) -> VmbResult<FeatureInfo> {
+    let feature = unsafe { camera.assume_init() };
+
+    Ok(FeatureInfo {
+        name: string_from_raw(feature.name).map_err(|_| VmbError::InternalFault)?,
+        category: string_from_raw(feature.category).map_err(|_| VmbError::InternalFault)?,
+        display_name: string_from_raw(feature.displayName)
+            .map_err(|_| VmbError::InternalFault)?,
+        tool_tip: string_from_raw(feature.tooltip).map_err(|_| VmbError::InternalFault)?,
+        description: string_from_raw(feature.description)
+            .map_err(|_| VmbError::InternalFault)?,
+        namespace: string_from_raw(feature.sfncNamespace)
+            .map_err(|_| VmbError::InternalFault)?,
+        unit: string_from_raw(feature.unit).map_err(|_| VmbError::InternalFault)?,
+        representation: string_from_raw(feature.representation)
+            .map_err(|_| VmbError::InternalFault)?,
+        data_type: FeatureDataType::from_repr(feature.featureDataType)
+            .ok_or(VmbError::InternalFault)?,
+        flags: FeatureFlags::from_repr(feature.featureFlags).ok_or(VmbError::InternalFault)?,
+        polling_time: feature.pollingTime,
+        visibility: FeatureVisibility::from_repr(feature.visibility)
+            .ok_or(VmbError::InternalFault)?,
+        is_streamable: feature.isStreamable & 0x01 == 1,
+        has_selected_features: feature.hasSelectedFeatures & 0x01 == 1,
+    })
+}
+
+pub fn feature_info_query(handle: &CameraHandle, name: &str) -> VmbResult<FeatureInfo> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
+
+    let feature_info_raw = mem::MaybeUninit::<VmbFeatureInfo_t>::uninit();
+    let info_size = mem::size_of::<VmbFeatureInfo_t>() as VmbUint32_t; 
+
+    vmb_result(unsafe {
+        VmbFeatureInfoQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            feature_info_raw.as_mut_ptr(),
+            info_size,
+        )
+    })?;
+
+    convert_feature_info_safe(feature_info_raw)
+}
 
 // pub fn feature_access_query()
 
