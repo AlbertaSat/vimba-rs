@@ -1,6 +1,6 @@
 use super::{error::*, ffi::*, utils::*};
 use std::{
-    ffi::{self, CStr, c_char},
+    ffi::{self, CStr, CString, c_char},
     mem::{self, MaybeUninit},
     ptr,
 };
@@ -517,7 +517,22 @@ pub fn feature_info_query(handle: &CameraHandle, name: &str) -> VmbResult<Featur
     convert_feature_info_safe(feature_info_raw)
 }
 
-// pub fn feature_access_query()
+pub fn feature_access_query(handle: &CameraHandle, name: &str) -> VmbResult<[bool; 2], VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut is_readable = False as VmbBool_t;
+    let mut is_writable = False as VmbBool_t;
+
+    vmb_result(unsafe {
+        VmbFeatureAccessQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut is_readable,
+            &mut is_writable,
+        )
+    })?;
+
+    Ok(vec![is_readable, is_writable])
+}
 
 // pub fn list_feature_selected()
 
@@ -551,9 +566,37 @@ pub fn feature_int_set(handle: &CameraHandle, name: &str, value: i64) -> VmbResu
     Ok(())
 }
 
-// pub fn feature_int_range_query()
+pub fn feature_int_range_query(handle: &CameraHandle, name: &str) -> VmbResult<[i64; 2], VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut min: i64 = -1 as VmbInt64_t;
+    let mut max: i64 = -1 as VmbInt64_t;
 
-// pub fn feature_int_increment_query()
+    vmb_result(unsafe {
+        VmbFeatureIntRangeQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut min,
+            &mut max,
+        )
+    })?;
+
+    Ok([min, max])
+}
+
+pub fn feature_int_increment_query(handle: &CameraHandle, name: &str, value: i64) -> VmbResult<i64, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut value = value as VmbInt64_t;
+
+    vmb_result(unsafe{
+        VmbFeatureIntIncrementQuery(
+            handle.as_raw(),
+            name.as_ptr(),
+            &mut value,
+        )
+    })?;
+
+    Ok(value)
+}
 
 // pub fn feature_int_valid_value_set_query()
 
@@ -586,7 +629,22 @@ pub fn feature_float_set(handle: &CameraHandle, name: &str, value: f64) -> VmbRe
     Ok(())
 }
 
-// pub fn feature_float_range_query()
+pub fn feature_float_range_query(handle: &CameraHandle, name: &str) -> VmbResult<[f64; 2], VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
+    let mut min: f64 = -1;
+    let mut max: f64 = -1;
+
+    vmb_result(unsafe {
+        VmbFeatureFloatRangeQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut min,
+            &mut max,
+        )
+    })?;
+
+    Ok([min, max])
+}
 
 pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
@@ -625,7 +683,52 @@ pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) {
 
 }
 
-// pub fn feature_enum_range_query()
+pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<Vec<String>, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut num_found = 0;
+
+    // first call to identify number of valud enums
+    vmb_result(unsafe {
+        VmbFeatureEnumRangeQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            std::ptr::null(),       // pass a null pointer to query size
+            0,
+            &mut num_found,
+        )
+    })?;
+
+    if num_found == 0 {
+        return Ok(Vec::new());
+    }
+
+    // allocate space for pointers
+    let mut raw_ptrs: Vec<*const std::os::raw::c_char> = vec![std::ptr::null(); num_found as usize];
+
+    // second call writing to raw_ptrs
+    vmb_result(unsafe {
+        VmbFeatureEnumRangeQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            raw_ptrs.as_mut_ptr(),
+            num_found,
+            &mut num_found,
+        )
+    })?;
+
+    let mut values = Vec::with_capacity(num_found as usize);
+    for &ptr in &raw [..num_found] {
+        if ptr.is_null() {
+            continue;
+        }
+
+        let s = unsafe { CStr::from_ptr(ptr)}.to_string_lossy().into_owned();
+
+        values.push(s);
+    }
+
+    Ok(values)
+}
 
 // pub fn feature_enum_is_available()
 
