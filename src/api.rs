@@ -771,7 +771,20 @@ pub fn feature_string_set(handle: &CameraHandle, name: &str, value: &str) -> Vmb
     Ok(())
 }
 
-// pub fn feature_string_max_length_query()
+pub fn feature_string_max_length_query(handle: &CameraHandle, name: &str) -> VmbResult<u32, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut max_length: u32 = 0 as VmbUint32_t;
+
+    vmb_result(unsafe {
+        VmbFeatureStringMaxLengthQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut max_length,
+        )
+    })?;
+
+    Ok(max_length)
+}
 
 pub fn feature_bool_get(handle: &CameraHandle, name: &str) -> VmbResult<bool, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
