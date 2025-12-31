@@ -2,7 +2,7 @@ use super::{error::*, ffi::*, utils::*};
 use std::{
     ffi::{self, CStr, CString, c_char},
     mem::{self, MaybeUninit},
-    ptr,
+    ptr, string,
 };
 use strum::FromRepr;
 
@@ -730,11 +730,56 @@ pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<
     Ok(values)
 }
 
-// pub fn feature_enum_is_available()
+pub fn feature_enum_is_available(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<bool, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let feature_value = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut is_available = False as VmbBool_t;
 
-// pub fn feature_enum_as_int()
+    vmb_result(unsafe {
+        VmbFeatureEnumIsAvailable(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            feature_value.as_ptr(),
+            &mut is_available,
+        )
+    })?;
 
-// pub fn feature_enum_as_string()
+    Ok(isAvailable)
+}
+
+pub fn feature_enum_as_int(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<i64, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let feature_value = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut int_value: i64 = -1 as VmbInt64_t;
+
+    vmb_result(unsafe {
+        VmbFeatureEnumAsInt(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            feature_value.as_ptr(),
+            &mut int_value,
+        )
+    })?;
+
+    Ok(int_value)
+}
+
+pub fn feature_enum_as_string(handle: &CameraHandle, name: &str, int_value: i64) -> VmbResult<String, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut string_value = std::ptr::null_mut();
+    
+    vmb_result(unsafe {
+        VmbFeatureEnumAsString(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            int_value as VmbInt64_t,
+            &mut string_value,
+        )
+    })?;
+
+    let value = unsafe { CStr::from_ptr(string_value)};
+    Ok(value.to_string_lossy().into_owned())
+}
 
 // pub fn feature_enum_entry_get()
 
