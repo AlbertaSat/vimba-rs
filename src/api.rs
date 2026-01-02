@@ -401,6 +401,16 @@ pub struct FeatureInfo {
     pub has_selected_features: bool,
 }
 
+pub struct FeatureEnumEntry {
+    pub name: String,
+    pub display_name: String,
+    pub tooltip: String,
+    pub description: String,
+    pub int_value: i64,
+    pub snfc_namespace: String,
+    pub visibility: FeatureVisibility,
+}
+
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, FromRepr)]
 pub enum FeatureDataType {
@@ -519,8 +529,8 @@ pub fn feature_info_query(handle: &CameraHandle, name: &str) -> VmbResult<Featur
 
 pub fn feature_access_query(handle: &CameraHandle, name: &str) -> VmbResult<[bool; 2], VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
-    let mut is_readable = False as VmbBool_t;
-    let mut is_writable = False as VmbBool_t;
+    let mut is_readable = false as VmbBool_t;
+    let mut is_writable = false as VmbBool_t;
 
     vmb_result(unsafe {
         VmbFeatureAccessQuery(
@@ -733,7 +743,7 @@ pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<
 pub fn feature_enum_is_available(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<bool, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
     let feature_value = CString::new(name).map_err(|_| VmbError::BadHandle)?;
-    let mut is_available = False as VmbBool_t;
+    let mut is_available = false as VmbBool_t;
 
     vmb_result(unsafe {
         VmbFeatureEnumIsAvailable(
@@ -781,7 +791,25 @@ pub fn feature_enum_as_string(handle: &CameraHandle, name: &str, int_value: i64)
     Ok(value.to_string_lossy().into_owned())
 }
 
-// pub fn feature_enum_entry_get()
+pub fn feature_enum_entry_get(handle: &CameraHandle, feature_name: &str, entry_name: &str) -> VmbResult<VmbFeatureEnumEntry, VmbError> {
+    let feature_name = CString::new(feature_name).map_err(|_| VmbError::BadHandle)?;
+    let entry_name = CString::new(entry_name).map_err(|_| VmbError::BadHandle)?;
+    
+    let enum_entry_size = mem::size_of::<VmbFeatureEnumEntry_t>() as VmbUint32_t;
+    let mut enum_entry: FeatureEnumEntry = unsafe { std::mem::zeroed() };
+    
+    vmb_result(unsafe {
+        VmbFeatureEnumEntryGet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            entry_name.as_ptr(),
+            &mut enum_entry as VmbFeatureEnumEntry_t,
+            enum_entry_size,
+        )
+    })?;
+
+    Ok(enum_entry)
+}
 
 pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<String, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
@@ -833,7 +861,7 @@ pub fn feature_string_max_length_query(handle: &CameraHandle, name: &str) -> Vmb
 
 pub fn feature_bool_get(handle: &CameraHandle, name: &str) -> VmbResult<bool, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
-    let mut value = False as VmbBool_t;
+    let mut value = false as VmbBool_t;
 
     vmb_result( unsafe {
         VmbFeatureBoolGet(
@@ -864,11 +892,47 @@ pub fn feature_bool_set(handle: &CameraHandle, name: &str, value: bool) -> VmbRe
     Ok(())
 }
 
-// pub fn feature_command_run()
+//  ---------------------------------------------------------------
+//  Command Feature Access
+//  --------------------------------------------------------------- 
 
-// pub fn feature_command_is_done()
+pub fn feature_command_run(handle: &CameraHandle, name: &str) -> VmbResult<(), VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
 
-// pub fn feature_raw_get()
+    vmb_result(unsafe {
+        VmbFeatureCommandRun(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+        )
+    })?;
+
+    Ok(())
+}
+
+pub fn feature_command_is_done(handle: &CameraHandle, name: &str) -> VmbResult<bool, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut is_done: bool = false as VmbBool_t;
+
+    vmb_result(unsafe {
+        VmbFeatureCommandIsDone(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut is_done,
+        )
+    })?;
+    Ok(is_done)
+}
+
+// ---------------------------------------------------------------
+// Raw Feature Access
+// ---------------------------------------------------------------
+
+pub fn feature_raw_get(handle: &CameraHandle, name: &str) -> VmbResult<???, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let buffer = ???; initialise buffer pointer (char *)
+    let buffer_size = feature_raw_length_query();
+    let mut size_filled: i32 = 0;
+}
 
 // pub fn feature_raw_set()
 
