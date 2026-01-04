@@ -600,7 +600,7 @@ pub fn feature_int_increment_query(handle: &CameraHandle, name: &str, value: i64
     vmb_result(unsafe{
         VmbFeatureIntIncrementQuery(
             handle.as_raw(),
-            name.as_ptr(),
+            feature_name.as_ptr(),
             &mut value,
         )
     })?;
@@ -927,30 +927,116 @@ pub fn feature_command_is_done(handle: &CameraHandle, name: &str) -> VmbResult<b
 // Raw Feature Access
 // ---------------------------------------------------------------
 
-pub fn feature_raw_get(handle: &CameraHandle, name: &str) -> VmbResult<???, VmbError> {
+pub fn feature_raw_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<i8>, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
-    let buffer = ???; initialise buffer pointer (char *)
-    let buffer_size = feature_raw_length_query();
-    let mut size_filled: i32 = 0;
+    
+    let buffer_size = feature_raw_length_query(&handle, &name)?;
+    let mut buffer = vec![0i8; buffer_size as usize];
+    let mut size_filled: u32 = 0 as VmbUint32_t;
+
+    vmb_result(unsafe {
+        VmbFeatureRawGet(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            buffer.as_mut_ptr(),
+            buffer_size as VmbUint32_t,
+            &mut size_filled,
+        )
+    })?;
+
+    Ok(buffer)
 }
 
-// pub fn feature_raw_set()
+// unsure how to proceed, buffer and buffersize will have to be provided
+pub fn feature_raw_set(handle: &CameraHandle, name: &str, buffer: ???, buffer_size: ???) -> VmbResult<???, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
 
-// pub fn feature_raw_length_query()
+
+}
+
+pub fn feature_raw_length_query(handle: &CameraHandle, name: &str) -> VmbResult<u32, VmbError> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
+    let mut feature_length: u32 = 0 as VmbUint32_t;
+
+    vmb_result(unsafe {
+        VmbFeatureRawLengthQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut feature_length,
+        )
+    })?;
+
+    Ok(feature_length)
+}
 
 // pub fn feature_invalidation_register()
 
 // pub fn feature_invalidation_unregister()
 
-// pub fn frame_announce()
+// ---------------------------------------------------------------
+// Image Preparation and Acquisition
+// ---------------------------------------------------------------
+
+pub struct VmbFrame {
+    // in
+    pub buffer: *mut c_void,
+    pub buffer_size: u32,
+    pub context: [*mut c_void; 4],
+
+    // out
+    pub recieve_status: VmbFrameStatus_t, // still to be implemented
+    pub frame_id: u64,
+    pub timestamp: u64,
+    pub image_data: *mut u8,
+    pub receive_flags: VmbFrameFlags_t,
+    pub pixel_format: VmbPixelFormat_t,
+    pub width: VmbImageDimension_t,
+    pub height: VmbImageDimension_t,
+    pub offset_x: VmbImageDimension_t,
+    pub offset_y: VmbImageDimension_t,
+    pub payload_type: VmbPayloadType_t,
+    pub chunk_data_present: bool,
+}
+
+
+pub fn payload_size_get(handle: &CameraHandle) -> VmbResult<u32, VmbError> {
+    let mut payload_size: u32 = 0 as VmbUint32_t;
+
+    vmb_result(unsafe {
+        VmbPayloadSizeGet(
+            handle.as_raw(),
+            &mut payload_size,
+        )
+    })?;
+
+    Ok(payload_size)
+}
+
+pub fn frame_announce(handle: &CameraHandle, )
 
 // pub fn frame_revoke()
 
 // pub fn frame_revoke_all()
 
-// pub fn capture_start()
+pub fn capture_start(handle: &CameraHandle) -> VmbResult<(), VmbError> {
+    vmb_result(unsafe {
+        VmbCaptureStart(
+            handle.as_raw()
+        )
+    })?;
 
-// pub fn capture_end()
+    Ok(())
+}
+
+pub fn capture_end(handle: &CameraHandle) -> VmbResult<(), VmbError> {
+    vmb_result(unsafe {
+        VmbCaptureEnd(
+            handle.as_raw()
+        )
+    })?;
+    
+    Ok(())
+}
 
 // pub fn capture_frame_queue()
 
