@@ -2,7 +2,6 @@ use super::{error::*, ffi::*, utils::*};
 use std::{
     ffi::{self, CStr, CString, c_char},
     mem::{self, MaybeUninit},
-    ptr, string,
 };
 use strum::FromRepr;
 
@@ -88,6 +87,10 @@ impl CameraHandle {
     }
 }
 
+// ---------------------------------------------------------------
+// API Version
+// ---------------------------------------------------------------
+
 pub fn vmb_version_query() -> VmbResult<VmbVersion> {
     let mut version_raw = VmbVersionInfo_t {
         major: 0,
@@ -110,6 +113,25 @@ pub fn vmb_version_query() -> VmbResult<VmbVersion> {
     })
 }
 
+// ---------------------------------------------------------------
+// API Initialization
+// ---------------------------------------------------------------
+
+#[derive(Debug, Clone)]
+pub struct CameraInfo {
+    pub id: String,
+    pub extended_id: String,
+    pub camera_name: String,
+    pub model_name: String,
+    pub serial_number: String,
+    pub transport_layer_handle: TransportLayerHandle,
+    pub interface_handle: InterfaceHandle,
+    pub local_device_handle: LocalDeviceHandle,
+    pub stream_handles: StreamHandles,
+    pub stream_count: u32,
+    pub access: AccessMode,
+}
+
 pub fn startup(path_config: Option<&str>) -> VmbResult<()> {
     let path = path_config.unwrap_or("/opt/VimbaX-2025_2/cti/VimbaUSBTL.cti");
 
@@ -123,6 +145,10 @@ pub fn shutdown() {
         VmbShutdown();
     }
 }
+
+// ---------------------------------------------------------------
+// Transportaion Layer Enumeration & Information
+// ---------------------------------------------------------------
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, FromRepr)]
@@ -202,6 +228,10 @@ pub fn transport_layers_list() -> VmbResult<Vec<TransportLayerInfo>> {
         .collect::<VmbResult<Vec<TransportLayerInfo>>>()
 }
 
+// ---------------------------------------------------------------
+// Interface Enumeration & Information
+// ---------------------------------------------------------------
+
 pub struct InterfaceInfo {
     pub id: String,
     pub name: String,
@@ -258,20 +288,9 @@ pub fn interfaces_list() -> VmbResult<Vec<InterfaceInfo>> {
         .collect::<VmbResult<Vec<InterfaceInfo>>>()
 }
 
-#[derive(Debug, Clone)]
-pub struct CameraInfo {
-    pub id: String,
-    pub extended_id: String,
-    pub camera_name: String,
-    pub model_name: String,
-    pub serial_number: String,
-    pub transport_layer_handle: TransportLayerHandle,
-    pub interface_handle: InterfaceHandle,
-    pub local_device_handle: LocalDeviceHandle,
-    pub stream_handles: StreamHandles,
-    pub stream_count: u32,
-    pub access: AccessMode,
-}
+// ---------------------------------------------------------------
+// Camera Enumeration & Information
+// ---------------------------------------------------------------
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, FromRepr)]
@@ -383,6 +402,10 @@ pub fn camera_close(handle: CameraHandle) -> VmbResult<()> {
     vmb_result(unsafe { VmbCameraClose(handle.as_raw()) })?;
     Ok(())
 }
+
+// ---------------------------------------------------------------
+// Feature Functions
+// ---------------------------------------------------------------
 
 pub struct FeatureInfo {
     pub name: String,
@@ -527,6 +550,8 @@ pub fn feature_info_query(handle: &CameraHandle, name: &str) -> VmbResult<Featur
     convert_feature_info_safe(feature_info_raw)
 }
 
+// pub fn list_feature_selected()
+
 pub fn feature_access_query(handle: &CameraHandle, name: &str) -> VmbResult<[bool; 2], VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
     let mut is_readable = false as VmbBool_t;
@@ -543,8 +568,6 @@ pub fn feature_access_query(handle: &CameraHandle, name: &str) -> VmbResult<[boo
 
     Ok(vec![is_readable, is_writable])
 }
-
-// pub fn list_feature_selected()
 
 pub fn feature_int_get(handle: &CameraHandle, name: &str) -> VmbResult<i64, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
@@ -655,6 +678,8 @@ pub fn feature_float_range_query(handle: &CameraHandle, name: &str) -> VmbResult
 
     Ok([min, max])
 }
+
+// pub fn feature_float_increment_query()
 
 pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String, VmbError> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadHandle)?;
@@ -1012,7 +1037,7 @@ pub fn payload_size_get(handle: &CameraHandle) -> VmbResult<u32, VmbError> {
     Ok(payload_size)
 }
 
-pub fn frame_announce(handle: &CameraHandle, )
+// pub fn frame_announce()
 
 // pub fn frame_revoke()
 
@@ -1044,16 +1069,64 @@ pub fn capture_end(handle: &CameraHandle) -> VmbResult<(), VmbError> {
 
 // pub fn capture_queue_flush()
 
-// pub fn memory_read()
+// ---------------------------------------------------------------
+// Direct Access
+// ---------------------------------------------------------------
 
-// pub fn memory_write()
+pub fn memory_read(handle: &CameraHandle, address: u64, buffer_size: u32) -> VmbResult<Pointer, VmbError> {
+    // let mut data_buffer: Vec<mem::MaybeUninit<???>> =
+        // vec![mem::MaybeUninit::uninit(); found as usize];
+    let mut data_buffer = vec![0u8, buffer_size];
+    let mut size_complete: u32 = 0;
+        
+    vmb_result(unsafe {
+        VmbMemoryRead(
+            handle.as_raw(),
+            address,
+            buffer_size,
+            data_buffer.as_mut_ptr().cast(),,
+            &mut size_complete,
+        )
+    })?;
+
+    // do not know how to return the data
+    Ok()
+}
+
+pub fn memory_write(handle: &CameraHandle, address: u64, buffer_size: u32, data_buffer: ???) -> VmbResult<(), VmbError> {
+    let mut size_complete: u32 = 0;
+    
+    vmb_result(unsafe {
+        VmbMemoryWrite(
+            handle.as_raw(),
+            address,
+            buffer_size,
+            data_buffer,
+            &mut size_complete,
+        )
+    })?;
+
+    Ok(())
+}
 
 // pub fn registers_read()
 
 // pub fn registers_write()
+
+// ---------------------------------------------------------------
+// Load & Save Settings
+// ---------------------------------------------------------------
+
+pub struct PersistSettings {
+    pub persist_type: u32,
+    pub module_persist_flags: u32,
+    pub max_iterations: u32,
+}
 
 // pub fn camera_settings_save()
 
 // pub fn camera_settings_load()
 
 // pub fn chunk_data_access()
+
+// pub fn chunk_access_callback()
