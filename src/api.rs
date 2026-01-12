@@ -697,8 +697,7 @@ pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String, 
         return Err(VmbError::NoData)
     }
 
-    let value = unsafe { CStr::from_ptr(value) }.to_string_lossy().into_owned();
-
+    let value = string_from_raw(value)?;
     Ok(value)
 }
 
@@ -757,8 +756,7 @@ pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<
             continue;
         }
 
-        let s = unsafe { CStr::from_ptr(ptr)}.to_string_lossy().into_owned();
-
+        let value = string_from_raw(ptr)?;
         values.push(s);
     }
 
@@ -812,7 +810,7 @@ pub fn feature_enum_as_string(handle: &CameraHandle, name: &str, int_value: i64)
         )
     })?;
 
-    let value = unsafe { CStr::from_ptr(string_value)};
+    let value = string_from_raw(string_value)?;
     Ok(value.to_string_lossy().into_owned())
 }
 
@@ -850,7 +848,7 @@ pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<String
         )
     })?;
 
-    let value = unsafe { CStr::from_ptr(value_buffer.as_ptr() as *const c_char) };
+    let value = string_from_raw(c_char)?;
     Ok(value.to_string_lossy().into_owned())
 }
 
