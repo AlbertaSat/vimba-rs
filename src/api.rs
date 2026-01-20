@@ -946,55 +946,6 @@ pub fn feature_command_is_done(handle: &CameraHandle, name: &str) -> VmbResult<b
     Ok(is_done)
 }
 
-// ---------------------------------------------------------------
-// Raw Feature Access
-// ---------------------------------------------------------------
-
-pub fn feature_raw_get(handle: &CameraHandle, name: &str) -> VmbResult<Vec<i8>, VmbError> {
-    let feature_name = raw_from_str(name)?;
-    
-    let buffer_size = feature_raw_length_query(&handle, &name)?;
-    let mut buffer = vec![0i8; buffer_size as usize];
-    let mut size_filled: u32 = 0 as VmbUint32_t;
-
-    vmb_result(unsafe {
-        VmbFeatureRawGet(
-            handle.as_raw(),
-            feature_name.as_ptr(),
-            buffer.as_mut_ptr(),
-            buffer_size as VmbUint32_t,
-            &mut size_filled,
-        )
-    })?;
-
-    Ok(buffer)
-}
-
-// unsure how to proceed, buffer and buffersize will have to be provided
-pub fn feature_raw_set(handle: &CameraHandle, name: &str, buffer: ???, buffer_size: ???) -> VmbResult<???, VmbError> {
-    let feature_name = raw_from_str(name)?;
-
-
-}
-
-pub fn feature_raw_length_query(handle: &CameraHandle, name: &str) -> VmbResult<u32, VmbError> {
-    let feature_name = raw_from_str(name)?;
-    let mut feature_length: u32 = 0 as VmbUint32_t;
-
-    vmb_result(unsafe {
-        VmbFeatureRawLengthQuery(
-            handle.as_raw(),
-            feature_name.as_ptr(),
-            &mut feature_length,
-        )
-    })?;
-
-    Ok(feature_length)
-}
-
-// pub fn feature_invalidation_register()
-
-// pub fn feature_invalidation_unregister()
 
 // ---------------------------------------------------------------
 // Image Preparation and Acquisition
@@ -1082,7 +1033,7 @@ pub fn memory_read(handle: &CameraHandle, address: u64, buffer_size: u32) -> Vmb
             handle.as_raw(),
             address,
             buffer_size,
-            data_buffer.as_mut_ptr().cast(),,
+            data_buffer.as_mut_ptr().cast(),
             &mut size_complete,
         )
     })?;
@@ -1121,7 +1072,22 @@ pub struct PersistSettings {
     pub max_iterations: u32,
 }
 
-// pub fn camera_settings_save()
+
+pub fn camera_settings_save(handle: &CameraHandle, &str: filepath, PersistSettings: settings) -> VmbResult<(), VmbError> {
+    let filepath = raw_from_str(filepath)?;
+    let mut size_of_settings: u32 = 0;
+
+    vmb_result(unsafe {
+        VmbSettingsSave(
+            handle.as_raw(),
+            filepath.as_ptr(),
+            settings,
+            &mut size_of_settings,
+        )
+    })?;
+
+    Ok(())
+}
 
 // pub fn camera_settings_load()
 
