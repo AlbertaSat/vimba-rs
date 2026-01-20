@@ -1,7 +1,6 @@
 use super::{error::*, ffi::*, utils::*};
 use std::{
-    ffi::{self, CStr, CString, c_char},
-    mem::{self, MaybeUninit}, os::raw,
+    collections::btree_map::Values, ffi::{self, CStr, CString, c_char}, fs::FileType, mem::{self, MaybeUninit}, os::raw
 };
 use strum::FromRepr;
 
@@ -631,7 +630,42 @@ pub fn feature_int_increment_query(handle: &CameraHandle, name: &str, value: i64
     Ok(value)
 }
 
-// pub fn feature_int_valid_value_set_query()
+pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> VmbResult<Vec<u32>, VmbError> {
+    let feature_name = raw_from_str(name)?;
+    let mut set_size: u32 = 0;
+    let mut buffer_size: u32 = 0;
+
+    // first call to identify size of value set
+    vmb_result(unsafe {
+        VmbFeatureIntValidValueSetQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            std::ptr::null(),   // pass null pointer to buffer to only return buffer size in buffer_size
+            &mut buffer_size,
+            &mut set_size, 
+        )
+    })?;
+
+    if set_size == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut buffer: Vec<i64> = vec![0..set_size];
+    let buffer_size: u32 = buffer.len();
+
+    // second call to populate buffer
+    vmb_result(unsafe {
+        VmbFeatureIntValidValueSetQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            buffer.as_mut_ptr(),
+            buffer_size,
+            &mut set_size,
+        )
+    })?;
+
+    Ok(buffer)
+}
 
 pub fn feature_float_get(handle: &CameraHandle, name: &str) -> VmbResult<f64, VmbError> {
     let feature_name = raw_from_str(name)?;
@@ -1074,22 +1108,36 @@ pub struct PersistSettings {
 
 
 pub fn camera_settings_save(handle: &CameraHandle, &str: filepath, PersistSettings: settings) -> VmbResult<(), VmbError> {
+    // TODO:    determine if this is how filepath is to be calculated
+    //          determine how to calculate size_of_settings in bytes for C instead of rust
     let filepath = raw_from_str(filepath)?;
-    let mut size_of_settings: u32 = 0;
+    let size_of_settings: u32 = 0;
 
     vmb_result(unsafe {
         VmbSettingsSave(
             handle.as_raw(),
             filepath.as_ptr(),
             settings,
-            &mut size_of_settings,
+            size_of_settings,
         )
     })?;
 
     Ok(())
 }
 
-// pub fn camera_settings_load()
+pub fn camera_settings_load(handle: &CameraHandle, &str: filepath, PersistSettings: settings) -> VmbResult<(), VmbError> {
+    let filepath = raw_from_str(filepath)?;
+    let size_of_settings: u32 = 0;
+
+    vmb_result(unsafe {
+        VmbSettingsLoad(
+            handle.as_raw(),
+            filepath.as_ptr(),
+            setting,
+            size_of_settings
+        )
+    })
+}
 
 // pub fn chunk_data_access()
 
