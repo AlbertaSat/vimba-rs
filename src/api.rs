@@ -1,6 +1,6 @@
 use super::{error::*, ffi::*, utils::*};
 use std::{
-    collections::btree_map::Values, ffi::{self, CStr, CString, c_char}, fs::FileType, mem::{self, MaybeUninit}, os::raw
+    collections::btree_map::Values, ffi::{self, CStr, CString, c_char, c_double}, fs::FileType, mem::{self, MaybeUninit}, os::raw
 };
 use strum::FromRepr;
 
@@ -85,6 +85,13 @@ impl CameraHandle {
         self.ptr
     }
 }
+
+pub type VmbFrameCallback = Option<
+    extern "C" fn(
+        handle: VmbHandle_t,
+        frame: *mut VmbFrame,
+    )
+>;
 
 // ---------------------------------------------------------------
 // API Version
@@ -548,8 +555,44 @@ pub fn feature_info_query(handle: &CameraHandle, name: &str) -> VmbResult<Featur
 
     convert_feature_info_safe(feature_info_raw)
 }
+pub fn list_feature_selected(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+    let feature_name = raw_from_str(name)?;
+    let mut num_found = 0 as VmbUint32_t;
+    let feature_info_size = mem::size_of::<VmbFeatureInfo>() as VmbUint32_t;
 
-// pub fn list_feature_selected()
+    vmb_result(unsafe {
+        VmbFeatureListSelected(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            pth::null_mut(),    // empty feature list
+            0 as ffi::c_uint,
+            &mut num_found,
+            feature_info_size,
+        )
+    })?;
+
+    if found == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut features_raw: Vec<mem::MaybeUninit<VmbFeatureInfo>> = vec![mem::MaybeUninit::uninit(); found as usize];
+
+    vmb_result(unsafe {
+        VmbFeatureListSelected(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            features_raw.as_mut_ptr().cast(),
+            found,
+            &mut found,
+            feature_info_size,
+        )
+    })?;
+
+    features_raw
+        .iter()
+        .map(|feature| convert_feature_info_safe(*feature))
+        .collect::<VmbResult<Vec<FeatureInfo>>>()
+}
 
 pub fn feature_access_query(handle: &CameraHandle, name: &str) -> VmbResult<[bool; 2], VmbError> {
     let feature_name = raw_from_str(name)?;
@@ -713,7 +756,22 @@ pub fn feature_float_range_query(handle: &CameraHandle, name: &str) -> VmbResult
     Ok([min, max])
 }
 
-// pub fn feature_float_increment_query()
+pub fn feature_float_increment_query(handle: &CameraHandle, name: &str) -> VmbResult<i64> {
+    let feature_name = raw_from_str(name);
+    let mut hasIncrement = false;
+    let mut value: = 0.0 as c_double;
+
+    vmb_result(unsafe {
+        VmbFeatureFloatIncrementQuery(
+            handle.as_raw(),
+            feature_name.as_ptr(),
+            &mut hasIncrement,
+            &mut value,
+        )
+    })?;
+
+    Ok(value)
+}
 
 pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String, VmbError> {
     let feature_name = raw_from_str(name)?;
@@ -1020,11 +1078,34 @@ pub fn payload_size_get(handle: &CameraHandle) -> VmbResult<u32, VmbError> {
     Ok(payload_size)
 }
 
-// pub fn frame_announce()
+pub fn frame_announce(handle: &CameraHandle, frame: VmbFrame, size_of_frame:u16) -> VmbResult<()> {
+    vmb_result(unsafe {
+        VmbFrameAnnounce(
+            handle.as_raw(),
+            frame as *const VmbFrame,
+            &mut size_of_frame,
+        )
+    })?;
 
-// pub fn frame_revoke()
+    Ok(())
+}
 
-// pub fn frame_revoke_all()
+pub fn frame_revoke(handle: &CameraHandle, frame: VmbFrame) -> VmbResult<()> {
+    vmb_result(unsafe {
+        VmbFrameRevoke(
+            handle.as_raw(),
+            frame as *const VmbFrame,
+        )
+    })?;
+
+    Ok(())
+}
+
+pub fn frame_revoke_all(handle: &CameraHandle) -> VmbResult<()> {
+    vmb_result(unsafe {VmbFrameRevokeAll(handle)})?;
+
+    Ok(())
+}
 
 pub fn capture_start(handle: &CameraHandle) -> VmbResult<(), VmbError> {
     vmb_result(unsafe {
@@ -1046,11 +1127,38 @@ pub fn capture_end(handle: &CameraHandle) -> VmbResult<(), VmbError> {
     Ok(())
 }
 
-// pub fn capture_frame_queue()
+pub fn capture_frame_queue(handle: &CameraHandle, frame: &VmbFrame, callback: VmbFrameCallback) -> VmbResult<()> {
+    vmb_result(unsafe {
+        VmbCaptureFrameQueue(
+            handle.as_raw(),
+            frame as *const VmbFrame,
+            callback,
+        )
+    })?;
 
-// pub fn capture_frame_wait()
+    Ok(())
+}
 
-// pub fn capture_queue_flush()
+pub fn capture_frame_wait(handle: &CameraHandle, frame: &VmbFrame, timeout: u32) {
+    vmb_result(unsafe {
+        VmbCaptureFrameWait(
+            handle.as_raw(),
+            frame as *const VmbFrame,
+            timeout as VmbUint32_t,
+        )
+    })?;
+
+    Ok(())
+}
+
+pub fn capture_queue_flush(handle: &CameraHandle) -> VmbResult<()> {
+    vmb_result(unsafe {
+        VmbCaptureQueueFlush(handle.as_raw())
+
+    })?;
+
+    Ok(())
+}
 
 // ---------------------------------------------------------------
 // Direct Access
@@ -1092,8 +1200,8 @@ pub fn memory_write(handle: &CameraHandle, address: u64, buffer_size: u32, data_
     Ok(())
 }
 
+// will be implemented if a use case is found
 // pub fn registers_read()
-
 // pub fn registers_write()
 
 // ---------------------------------------------------------------
@@ -1139,6 +1247,8 @@ pub fn camera_settings_load(handle: &CameraHandle, &str: filepath, PersistSettin
     })
 }
 
+
+// will be implemented if a use case is found
 // pub fn chunk_data_access()
 
 // pub fn chunk_access_callback()
