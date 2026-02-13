@@ -759,7 +759,7 @@ pub fn feature_float_range_query(handle: &CameraHandle, name: &str) -> VmbResult
 pub fn feature_float_increment_query(handle: &CameraHandle, name: &str) -> VmbResult<i64> {
     let feature_name = raw_from_str(name);
     let mut hasIncrement = false;
-    let mut value: = 0.0 as c_double;
+    let mut value = 0.0 as c_double;
 
     vmb_result(unsafe {
         VmbFeatureFloatIncrementQuery(
@@ -1184,21 +1184,7 @@ pub fn memory_read(handle: &CameraHandle, address: u64, buffer_size: u32) -> Vmb
     Ok()
 }
 
-pub fn memory_write(handle: &CameraHandle, address: u64, buffer_size: u32, data_buffer: ???) -> VmbResult<(), VmbError> {
-    let mut size_complete: u32 = 0;
-    
-    vmb_result(unsafe {
-        VmbMemoryWrite(
-            handle.as_raw(),
-            address,
-            buffer_size,
-            data_buffer,
-            &mut size_complete,
-        )
-    })?;
-
-    Ok(())
-}
+// pub fn memory_write()
 
 // will be implemented if a use case is found
 // pub fn registers_read()
