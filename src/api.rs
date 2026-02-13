@@ -1182,7 +1182,7 @@ pub struct PersistSettings {
 }
 
 
-pub fn camera_settings_save(handle: &CameraHandle, &str: filepath, PersistSettings: settings) -> VmbResult<(), VmbError> {
+pub fn camera_settings_save(handle: &CameraHandle, filepath: &str, settings: PersistSettings) -> VmbResult<(), VmbError> {
     // TODO:    determine if this is how filepath is to be calculated
     //          determine how to calculate size_of_settings in bytes for C instead of rust
     let filepath = raw_from_str(filepath)?;
@@ -1200,7 +1200,7 @@ pub fn camera_settings_save(handle: &CameraHandle, &str: filepath, PersistSettin
     Ok(())
 }
 
-pub fn camera_settings_load(handle: &CameraHandle, &str: filepath, PersistSettings: settings) -> VmbResult<(), VmbError> {
+pub fn camera_settings_load(handle: &CameraHandle, filepath: &str, settings: PersistSettings) -> VmbResult<(), VmbError> {
     let filepath = raw_from_str(filepath)?;
     let size_of_settings: u32 = 0;
 
