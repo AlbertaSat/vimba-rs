@@ -1161,15 +1161,17 @@ pub fn capture_queue_flush(handle: &CameraHandle) -> VmbResult<()> {
 
 // ---------------------------------------------------------------
 // Direct Access
+// will be implemented if a use case is found
 // ---------------------------------------------------------------
 
 // pub fn memory_read()
-
 // pub fn memory_write()
 
-// will be implemented if a use case is found
 // pub fn registers_read()
 // pub fn registers_write()
+
+// pub fn chunk_data_access()
+// pub fn chunk_access_callback()
 
 // ---------------------------------------------------------------
 // Load & Save Settings
@@ -1214,8 +1216,3 @@ pub fn camera_settings_load(handle: &CameraHandle, filepath: &str, settings: Per
     })
 }
 
-
-// will be implemented if a use case is found
-// pub fn chunk_data_access()
-
-// pub fn chunk_access_callback()
