@@ -608,7 +608,7 @@ pub fn feature_access_query(handle: &CameraHandle, name: &str) -> VmbResult<[boo
         )
     })?;
 
-    Ok(vec![is_readable, is_writable])
+    Ok([is_readable, is_writable])
 }
 
 pub fn feature_int_get(handle: &CameraHandle, name: &str) -> VmbResult<i64, VmbError> {
@@ -673,7 +673,7 @@ pub fn feature_int_increment_query(handle: &CameraHandle, name: &str, value: i64
     Ok(value)
 }
 
-pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> VmbResult<Vec<u32>, VmbError> {
+pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> VmbResult<Vec<i64>, VmbError> {
     let feature_name = raw_from_str(name)?;
     let mut set_size: u32 = 0;
     let mut buffer_size: u32 = 0;
@@ -693,8 +693,7 @@ pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> V
         return Ok(Vec::new());
     }
 
-    let mut buffer: Vec<i64> = vec![0..set_size];
-    let buffer_size: u32 = buffer.len();
+    let mut buffer: Vec<i64> = vec![0; set_size as usize];
 
     // second call to populate buffer
     vmb_result(unsafe {
@@ -712,7 +711,7 @@ pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> V
 
 pub fn feature_float_get(handle: &CameraHandle, name: &str) -> VmbResult<f64, VmbError> {
     let feature_name = raw_from_str(name)?;
-    let mut value: f64 = 0;
+    let mut value: f64 = 0.0;
 
     vmb_result( unsafe {
         VmbFeatureFloatGet(
@@ -741,8 +740,8 @@ pub fn feature_float_set(handle: &CameraHandle, name: &str, value: f64) -> VmbRe
 
 pub fn feature_float_range_query(handle: &CameraHandle, name: &str) -> VmbResult<[f64; 2], VmbError> {
     let feature_name = raw_from_str(name);
-    let mut min: f64 = -1;
-    let mut max: f64 = -1;
+    let mut min: f64 = -1.0;
+    let mut max: f64 = -1.0;
 
     vmb_result(unsafe {
         VmbFeatureFloatRangeQuery(
@@ -756,7 +755,7 @@ pub fn feature_float_range_query(handle: &CameraHandle, name: &str) -> VmbResult
     Ok([min, max])
 }
 
-pub fn feature_float_increment_query(handle: &CameraHandle, name: &str) -> VmbResult<i64> {
+pub fn feature_float_increment_query(handle: &CameraHandle, name: &str) -> VmbResult<f64> {
     let feature_name = raw_from_str(name);
     let mut hasIncrement = false;
     let mut value = 0.0 as c_double;
@@ -793,7 +792,7 @@ pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String, 
     Ok(value)
 }
 
-pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) {
+pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<()> {
     let feature_name = raw_from_str(name)?;
     let feature_value = raw_from_str(name)?;
 
@@ -1082,7 +1081,7 @@ pub fn frame_announce(handle: &CameraHandle, frame: VmbFrame, size_of_frame:u16)
     vmb_result(unsafe {
         VmbFrameAnnounce(
             handle.as_raw(),
-            frame as *const VmbFrame,
+            frame as VmbFrame,
             &mut size_of_frame,
         )
     })?;
@@ -1094,7 +1093,7 @@ pub fn frame_revoke(handle: &CameraHandle, frame: VmbFrame) -> VmbResult<()> {
     vmb_result(unsafe {
         VmbFrameRevoke(
             handle.as_raw(),
-            frame as *const VmbFrame,
+            frame as VmbFrame,
         )
     })?;
 
@@ -1139,7 +1138,7 @@ pub fn capture_frame_queue(handle: &CameraHandle, frame: &VmbFrame, callback: Vm
     Ok(())
 }
 
-pub fn capture_frame_wait(handle: &CameraHandle, frame: &VmbFrame, timeout: u32) {
+pub fn capture_frame_wait(handle: &CameraHandle, frame: &VmbFrame, timeout: u32) -> VmbResult<()>{
     vmb_result(unsafe {
         VmbCaptureFrameWait(
             handle.as_raw(),
@@ -1164,25 +1163,7 @@ pub fn capture_queue_flush(handle: &CameraHandle) -> VmbResult<()> {
 // Direct Access
 // ---------------------------------------------------------------
 
-pub fn memory_read(handle: &CameraHandle, address: u64, buffer_size: u32) -> VmbResult<Pointer, VmbError> {
-    // let mut data_buffer: Vec<mem::MaybeUninit<???>> =
-        // vec![mem::MaybeUninit::uninit(); found as usize];
-    let mut data_buffer = vec![0u8, buffer_size];
-    let mut size_complete: u32 = 0;
-        
-    vmb_result(unsafe {
-        VmbMemoryRead(
-            handle.as_raw(),
-            address,
-            buffer_size,
-            data_buffer.as_mut_ptr().cast(),
-            &mut size_complete,
-        )
-    })?;
-
-    // do not know how to return the data
-    Ok()
-}
+// pub fn memory_read()
 
 // pub fn memory_write()
 
