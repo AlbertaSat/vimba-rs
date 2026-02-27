@@ -12,9 +12,9 @@ After cloning the repository or adding the crate to you Cargo.toml you must add 
 
 ``` Bash
 export LD_LIBRARY_PATH=/opt/VimbaX_2025-3/api/lib
-+note that the path may be different depending on the version of Vimba you have downloaded.
-+As of writing, the latest available version is VimbaX_2025-3.
-+Corresponding changes will have to be made to the `wrapper.h` and `build.rs` files to reflect your version
+note that the path may be different depending on the version of Vimba you have downloaded.
+As of writing, the latest available version is VimbaX_2025-3.
+Corresponding changes will have to be made to the `wrapper.h` and `build.rs` files to reflect your version
 ```
 
 Now you can run the `query_version` example:
