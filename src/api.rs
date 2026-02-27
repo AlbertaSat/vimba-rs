@@ -544,7 +544,7 @@ fn convert_feature_info_safe(camera: mem::MaybeUninit<VmbFeatureInfo_t>,) -> Vmb
 pub fn feature_info_query(handle: &CameraHandle, name: &str) -> VmbResult<FeatureInfo> {
     let feature_name = raw_from_str(name);
 
-    let feature_info_raw = mem::MaybeUninit::<VmbFeatureInfo_t>::uninit();
+    let mut feature_info_raw = mem::MaybeUninit::<VmbFeatureInfo_t>::uninit();
     let info_size = mem::size_of::<VmbFeatureInfo_t>() as VmbUint32_t; 
 
     vmb_result(unsafe {
@@ -679,14 +679,14 @@ pub fn feature_int_increment_query(handle: &CameraHandle, name: &str, value: i64
 pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> VmbResult<Vec<i64>> {
     let feature_name = raw_from_str(name);
     let mut set_size: u32 = 0;
-    let mut buffer_size: u32 = 0;
+    let buffer_size: u32 = 0;
 
     // first call to identify size of value set
     vmb_result(unsafe {
         VmbFeatureIntValidValueSetQuery(
             handle.as_raw(),
             feature_name,
-            std::ptr::null(),   // pass null pointer to buffer to only return buffer size in buffer_size
+            std::ptr::null_mut(),   // pass null pointer to buffer to only return buffer size in buffer_size
             buffer_size,
             &mut set_size, 
         )
@@ -791,7 +791,7 @@ pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String> 
         return Err(VmbError::NoData)
     }
 
-    let value = string_from_raw(value)?;
+    let value = string_from_raw(value).map_err(|_| VmbError::InternalFault)?;
     Ok(value)
 }
 
@@ -800,10 +800,10 @@ pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) -> VmbRe
     let feature_value = raw_from_str(value);
 
     vmb_result(unsafe {
-        VmbFeatureBoolSet(
+        VmbFeatureEnumSet(
             handle.as_raw(),
             feature_name,
-            &feature_value,
+            feature_value,
         )
     })?;
 
@@ -820,7 +820,7 @@ pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<
         VmbFeatureEnumRangeQuery(
             handle.as_raw(),
             feature_name,
-            std::ptr::null(),       // pass a null pointer to query size
+            std::ptr::null_mut(),       // pass a null pointer to query size
             0,
             &mut num_found,
         )
@@ -850,7 +850,7 @@ pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<
             continue;
         }
 
-        let value = string_from_raw(ptr)?;
+        let value = string_from_raw(ptr).map_err(|_| VmbError::InternalFault)?;
         values.push(value);
     }
 
@@ -871,7 +871,7 @@ pub fn feature_enum_is_available(handle: &CameraHandle, name: &str, value: &str)
         )
     })?;
 
-    Ok(is_available)
+    Ok(is_available != 0)
 }
 
 pub fn feature_enum_as_int(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<i64> {
@@ -900,12 +900,12 @@ pub fn feature_enum_as_string(handle: &CameraHandle, name: &str, int_value: i64)
             handle.as_raw(),
             feature_name,
             int_value as VmbInt64_t,
-            &mut string_value,
+            string_value,
         )
     })?;
 
-    let value = string_from_raw(string_value)?;
-    Ok(value.to_string_lossy().into_owned())
+    let value = string_from_raw(string_value).map_err(|_| VmbError::InternalFault)?;
+    Ok(value)
 }
 
 pub fn feature_enum_entry_get(handle: &CameraHandle, feature_name: &str, entry_name: &str) -> VmbResult<VmbFeatureEnumEntry> {
@@ -942,8 +942,8 @@ pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<String
         )
     })?;
 
-    let value = string_from_raw(value_buffer)?;
-    Ok(value.to_string_lossy().into_owned())
+    let value = string_from_raw(value_buffer).map_err(|_| VmbError::InternalFault)?;
+    Ok(value)
 }
 
 pub fn feature_string_set(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<()> {
@@ -966,7 +966,7 @@ pub fn feature_string_max_length_query(handle: &CameraHandle, name: &str) -> Vmb
     let mut max_length: u32 = 0 as VmbUint32_t;
 
     vmb_result(unsafe {
-        VmbFeatureStringMaxLengthQuery(
+        VmbFeatureStringMaxlengthQuery(
             handle.as_raw(),
             feature_name,
             &mut max_length,
@@ -988,7 +988,7 @@ pub fn feature_bool_get(handle: &CameraHandle, name: &str) -> VmbResult<bool> {
         )
     })?;
 
-    Ok(value)
+    Ok(value != 0)
 }
 
 pub fn feature_bool_set(handle: &CameraHandle, name: &str, value: bool) -> VmbResult<()> {
@@ -1002,7 +1002,7 @@ pub fn feature_bool_set(handle: &CameraHandle, name: &str, value: bool) -> VmbRe
         VmbFeatureBoolSet(
             handle.as_raw(),
             feature_name,
-            &value,
+            &feature_value,
         )
     })?;
 
@@ -1028,13 +1028,13 @@ pub fn feature_command_run(handle: &CameraHandle, name: &str) -> VmbResult<()> {
 
 pub fn feature_command_is_done(handle: &CameraHandle, name: &str) -> VmbResult<bool> {
     let feature_name = raw_from_str(name);
-    let mut is_done: bool = false as VmbBool_t;
+    let mut is_done: VmbBool_t = VmbBoolVal_VmbBoolFalse;
 
     vmb_result(unsafe {
         VmbFeatureCommandIsDone(
             handle.as_raw(),
             feature_name,
-            &mut is_done,
+            &mut is_done as *mut VmbBool_t,
         )
     })?;
     Ok(is_done)
