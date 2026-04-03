@@ -11,7 +11,7 @@ Some extra steps are required to run the `query_version` example. Here I will on
 After cloning the repository or adding the crate to you Cargo.toml you must add Vimba's library directory to your LD_LIBRARY_PATH so that the example can link at runtime with the libVmbC.so:
 
 ``` Bash
-export LD_LIBRARY_PATH=/opt/VimbaX_2025-2/api/lib
+export LD_LIBRARY_PATH=/opt/VimbaX_2025-3/api/lib
 note that the path may be different depending on the version of Vimba you have downloaded.
 As of writing, the latest available version is VimbaX_2025-3.
 Corresponding changes will have to be made to the `wrapper.h` and `build.rs` files to reflect your version
