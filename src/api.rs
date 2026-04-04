@@ -136,7 +136,7 @@ pub struct CameraInfo {
 }
 
 pub fn startup(path_config: Option<&str>) -> VmbResult<()> {
-    let path = path_config.unwrap_or("/opt/VimbaX-2025_2/cti/VimbaUSBTL.cti");
+    let path = path_config.unwrap_or("/opt/VimbaX-2025-3/cti/VimbaUSBTL.cti");
 
     let path = CString::new(path).map_err(|_| VmbError::BadParameter)?;
     vmb_result(unsafe { VmbStartup(path.as_ptr()) })?;
@@ -148,7 +148,7 @@ pub fn shutdown() {
         VmbShutdown();
     }
 }
-
+ 
 // ---------------------------------------------------------------
 // Transportaion Layer Enumeration & Information
 // ---------------------------------------------------------------
@@ -1073,23 +1073,23 @@ pub fn payload_size_get(handle: &CameraHandle) -> VmbResult<u32> {
     Ok(payload_size)
 }
 
-pub fn frame_announce(handle: &CameraHandle, frame: VmbFrame, size_of_frame:u32) -> VmbResult<()> {
+pub fn frame_announce(handle: &CameraHandle, frame: &Frame) -> VmbResult<()> {
     vmb_result(unsafe {
         VmbFrameAnnounce(
             handle.as_raw(),
-            &frame as *const VmbFrame,
-            size_of_frame,
+            frame as *const Frame,
+            std::mem::size_of::<Frame>() as VmbUint32_t,
         )
     })?;
 
     Ok(())
 }
 
-pub fn frame_revoke(handle: &CameraHandle, frame: VmbFrame) -> VmbResult<()> {
+pub fn frame_revoke(handle: &CameraHandle, frame: &Frame) -> VmbResult<()> {
     vmb_result(unsafe {
         VmbFrameRevoke(
             handle.as_raw(),
-            &frame as *const VmbFrame,
+            frame as *const Frame,
         )
     })?;
 
@@ -1122,11 +1122,11 @@ pub fn capture_end(handle: &CameraHandle) -> VmbResult<()> {
     Ok(())
 }
 
-pub fn capture_frame_queue(handle: &CameraHandle, frame: &VmbFrame, callback: VmbFrameCallback) -> VmbResult<()> {
+pub fn capture_frame_queue(handle: &CameraHandle, frame: &Frame, callback: VmbFrameCallback) -> VmbResult<()> {
     vmb_result(unsafe {
         VmbCaptureFrameQueue(
             handle.as_raw(),
-            frame as *const VmbFrame,
+            frame as *const Frame,
             callback,
         )
     })?;
@@ -1134,11 +1134,11 @@ pub fn capture_frame_queue(handle: &CameraHandle, frame: &VmbFrame, callback: Vm
     Ok(())
 }
 
-pub fn capture_frame_wait(handle: &CameraHandle, frame: &VmbFrame, timeout: u32) -> VmbResult<()>{
+pub fn capture_frame_wait(handle: &CameraHandle, frame: &Frame, timeout: u32) -> VmbResult<()>{
     vmb_result(unsafe {
         VmbCaptureFrameWait(
             handle.as_raw(),
-            frame as *const VmbFrame,
+            frame as *const Frame,
             timeout as VmbUint32_t,
         )
     })?;
