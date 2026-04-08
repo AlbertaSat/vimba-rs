@@ -132,7 +132,8 @@ pub struct CameraInfo {
     pub local_device_handle: LocalDeviceHandle,
     pub stream_handles: StreamHandles,
     pub stream_count: u32,
-    pub access: AccessMode,
+    pub access: u32, //note from Olivia: access was previously AccessMode type but this broke because camera.permittedAccess is a bitfield wise number 
+    pub permitted_access: AccessFlags, //use camera_info.permitted_access.access_full() -> bool 
 }
 
 pub fn startup(path_config: Option<&str>) -> VmbResult<()> {
@@ -297,29 +298,58 @@ pub fn interfaces_list() -> VmbResult<Vec<InterfaceInfo>> {
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, FromRepr)]
-pub enum AccessMode {
-    None = VmbAccessModeType_VmbAccessModeNone,
-    Full = VmbAccessModeType_VmbAccessModeFull,
-    Read = VmbAccessModeType_VmbAccessModeRead,
-    Unknown = VmbAccessModeType_VmbAccessModeUnknown,
-    Exclusive = VmbAccessModeType_VmbAccessModeExclusive,
+pub enum AccessMode { //a note from Olivia: each mode corresponds to 1 bit. camera.permittedAccess returns a number that fills in each bitfield. 
+    // might return 11 = b1011 = 8+ 4+ 1  
+    // do 
+    None = VmbAccessModeType_VmbAccessModeNone, //0000
+    Full = VmbAccessModeType_VmbAccessModeFull, //0001
+    Read = VmbAccessModeType_VmbAccessModeRead, //0010
+    Unknown = VmbAccessModeType_VmbAccessModeUnknown, //0100
+    Exclusive = VmbAccessModeType_VmbAccessModeExclusive, //1000
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct AccessFlags(u32);
+
+impl AccessFlags {
+    //instantiate access as access=AccessFlags(camera.permittedAccess)
+    pub fn access_full(self) -> bool {
+        self.0 & VmbAccessModeType_VmbAccessModeFull != 0
+    }
+
+    pub fn access_read(self) -> bool {
+        self.0 & VmbAccessModeType_VmbAccessModeRead != 0
+    }
+
+    pub fn access_exclusive(self) -> bool {
+        self.0 & VmbAccessModeType_VmbAccessModeExclusive != 0
+    }
+
+    pub fn access_unknown(self) -> bool {
+        self.0 & VmbAccessModeType_VmbAccessModeUnknown != 0
+    }
+
+    pub fn raw(self) -> u32 {
+        self.0
+    }
 }
 
 pub fn cameras_list() -> VmbResult<Vec<CameraInfo>> {
     let mut found = 0 as VmbUint32_t;
     let info_size = mem::size_of::<VmbCameraInfo_t>() as VmbUint32_t;
-
+    println!("calling VmbCamerasList with null ptr to get number of cameras found");
     vmb_result(unsafe {
         VmbCamerasList(ptr::null_mut(), 0 as u32, &mut found, info_size)
     })?;
-
+    println!("VmbCamerasList found {} camera(s)", found);
     if found == 0 {
-        return Ok(Vec::new());
+        return Ok(Vec::new()); //if no camera found, return an empty vector 
     }
 
     let mut cameras_raw: Vec<mem::MaybeUninit<VmbCameraInfo_t>> =
         vec![mem::MaybeUninit::uninit(); found as usize];
 
+    
     vmb_result(unsafe {
         VmbCamerasList(
             cameras_raw.as_mut_ptr().cast(),
@@ -328,11 +358,13 @@ pub fn cameras_list() -> VmbResult<Vec<CameraInfo>> {
             info_size,
         )
     })?;
+    println!("filled {} camera record(s)", found);
 
     cameras_raw
         .iter()
         .map(|camera| convert_camera_info_safe(*camera))
         .collect::<VmbResult<Vec<CameraInfo>>>()
+    
 }
 
 pub fn camera_info_query_by_handle(handle: LocalDeviceHandle) -> VmbResult<CameraInfo> {
@@ -348,7 +380,25 @@ pub fn camera_info_query_by_handle(handle: LocalDeviceHandle) -> VmbResult<Camer
 
 fn convert_camera_info_safe(camera: mem::MaybeUninit<VmbCameraInfo_t>) -> VmbResult<CameraInfo> {
     let camera = unsafe { camera.assume_init() };
+    println!("Debugging convert_camera_info_safe");
 
+    println!("cameraIdString          = {:?}", string_from_raw(camera.cameraIdString).map_err(|_| VmbError::InternalFault));
+    println!("cameraIdExtended = {:?}",        string_from_raw(camera.cameraIdExtended).map_err(|_| VmbError::InternalFault));
+    println!("cameraName        = {:?}",       string_from_raw(camera.cameraName).map_err(|_| VmbError::InternalFault));
+    println!("modelName      = {:?}",          string_from_raw(camera.modelName).map_err(|_| VmbError::InternalFault));
+    println!("serialString      = {:?}",         string_from_raw(camera.serialString).map_err(|_| VmbError::InternalFault));
+    println!("transportLayerHandle = {:?}",      unsafe {TransportLayerHandle::from_raw(camera.transportLayerHandle)});
+    println!("interfaceHandle = {:?}",           unsafe {InterfaceHandle::from_raw(camera.interfaceHandle)});
+    println!("localDeviceHandle = {:?}",         unsafe {LocalDeviceHandle::from_raw(camera.localDeviceHandle)});
+    println!("streamHandles = {:?}",             unsafe {StreamHandles::from_raw(camera.streamHandles)});
+    println!("streamCount = {:?}",               camera.streamCount);
+    println!("permittedAccess = {:?}", camera.permittedAccess);
+    println!("AccessFlags.access_full() = {:?}",    AccessFlags(camera.permittedAccess).access_full());
+    println!("AccessFlags.access_exclusive() = {:?}",    AccessFlags(camera.permittedAccess).access_exclusive());
+    println!("AccessFlags.access_read() = {:?}",    AccessFlags(camera.permittedAccess).access_read());
+    println!("AccessFlags.access_unknown() = {:?}",    AccessFlags(camera.permittedAccess).access_unknown());
+
+    
     Ok(CameraInfo {
         id: string_from_raw(camera.cameraIdString).map_err(|_| VmbError::InternalFault)?,
         extended_id: string_from_raw(camera.cameraIdExtended)
@@ -363,7 +413,8 @@ fn convert_camera_info_safe(camera: mem::MaybeUninit<VmbCameraInfo_t>) -> VmbRes
         local_device_handle: unsafe { LocalDeviceHandle::from_raw(camera.localDeviceHandle) },
         stream_handles: unsafe { StreamHandles::from_raw(camera.streamHandles) },
         stream_count: camera.streamCount,
-        access: AccessMode::from_repr(camera.permittedAccess).ok_or(VmbError::InternalFault)?,
+        access: camera.permittedAccess,
+        permitted_access: AccessFlags(camera.permittedAccess),
     })
 }
 
@@ -422,6 +473,7 @@ pub struct FeatureInfo {
     pub unit: String,
     pub representation: String,
     pub data_type: FeatureDataType,
+    pub mode: u32,
     pub flags: FeatureFlags,
     pub polling_time: u32,
     pub visibility: FeatureVisibility,
@@ -465,12 +517,33 @@ pub enum FeatureVisibility {
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, FromRepr)]
-pub enum FeatureFlags {
+pub enum FeatureMode { //like AccessMode
     None = VmbFeatureFlagsType_VmbFeatureFlagsNone,
     Read = VmbFeatureFlagsType_VmbFeatureFlagsRead,
     Write = VmbFeatureFlagsType_VmbFeatureFlagsWrite,
     Volatile = VmbFeatureFlagsType_VmbFeatureFlagsVolatile,
     ModifyWrite = VmbFeatureFlagsType_VmbFeatureFlagsModifyWrite,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct FeatureFlags(u32); //note from olivia: this is akin to AccessFlags
+
+impl FeatureFlags {
+    pub fn read_access(self) -> bool {
+        self.0 & VmbFeatureFlagsType_VmbFeatureFlagsRead != 0
+    }
+
+    pub fn write_access(self) -> bool {
+        self.0 & VmbFeatureFlagsType_VmbFeatureFlagsWrite != 0
+    }
+
+    pub fn is_volatile(self) -> bool {
+        self.0 & VmbFeatureFlagsType_VmbFeatureFlagsVolatile != 0
+    }
+
+    pub fn modify_write(self) -> bool {
+        self.0 & VmbFeatureFlagsType_VmbFeatureFlagsModifyWrite != 0
+    }
 }
 
 pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
@@ -513,6 +586,12 @@ pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
 fn convert_feature_info_safe(camera: mem::MaybeUninit<VmbFeatureInfo_t>,) -> VmbResult<FeatureInfo> {
     let feature = unsafe { camera.assume_init() };
 
+    let name = string_from_raw(feature.name).map_err(|_| VmbError::InternalFault)?;
+    println!("feature name         = {}", name);
+    println!("featureDataType raw  = {}", feature.featureDataType);
+    println!("featureFlags raw     = {}", feature.featureFlags);
+    println!("visibility raw       = {}", feature.visibility);
+
     Ok(FeatureInfo {
         name: string_from_raw(feature.name).map_err(|_| VmbError::InternalFault)?,
         category: string_from_raw(feature.category).map_err(|_| VmbError::InternalFault)?,
@@ -528,7 +607,8 @@ fn convert_feature_info_safe(camera: mem::MaybeUninit<VmbFeatureInfo_t>,) -> Vmb
             .map_err(|_| VmbError::InternalFault)?,
         data_type: FeatureDataType::from_repr(feature.featureDataType)
             .ok_or(VmbError::InternalFault)?,
-        flags: FeatureFlags::from_repr(feature.featureFlags).ok_or(VmbError::InternalFault)?,
+        mode: feature.featureFlags,
+        flags: FeatureFlags(feature.featureFlags),
         polling_time: feature.pollingTime,
         visibility: FeatureVisibility::from_repr(feature.visibility)
             .ok_or(VmbError::InternalFault)?,
@@ -1028,6 +1108,9 @@ pub fn feature_bool_set(handle: &CameraHandle, name: &str, value: bool) -> VmbRe
 pub fn feature_command_run(handle: &CameraHandle, name: &str) -> VmbResult<()> {
     let feature_name = raw_from_str(name);
 
+    println!("feature_command_run {:?}", handle);
+    println!("handle as raw {:?}", handle.as_raw());
+
     vmb_result(unsafe {
         VmbFeatureCommandRun(
             handle.as_raw(),
@@ -1058,6 +1141,13 @@ pub fn feature_command_is_done(handle: &CameraHandle, name: &str) -> VmbResult<b
 // ---------------------------------------------------------------
 
 pub type Frame = vmbffi::VmbFrame_t;
+
+pub fn frame_from_buffer(buffer: &mut [u8]) -> Frame {
+    let mut frame: Frame = unsafe { std::mem::zeroed() };
+    frame.buffer = buffer.as_mut_ptr() as *mut _;
+    frame.bufferSize = buffer.len() as u32;
+    frame
+}
 
 
 pub fn payload_size_get(handle: &CameraHandle) -> VmbResult<u32> {
