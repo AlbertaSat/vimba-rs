@@ -186,6 +186,227 @@ mod vimba_api {
         Ok(())
         
     }
+
+    //function to run get and set commands
+    pub fn command_run(camera_handle: &vimba_rs::api::CameraHandle, string: &str) -> vimba_rs::VmbResult<bool> {
+        println!("Camera handle: {:?}", camera_handle);
+        match vimba_rs::api::feature_command_run(camera_handle, string){
+            Ok(()) => println!("Successfully ran command {}", string),
+            Err(e) => eprintln!("Failed to run command {}: {e}", string),
+        }
+        // double check if command done using 'feature_command_is_done'
+        vimba_rs::api::feature_command_is_done(camera_handle, string)?;
+        Ok(true)
+    }
+
+    // print out features and their feature info
+    //this function is js for debugging, though it should not be used in the actual handler.
+    pub fn list_all_features(camera_handle: &vimba_rs::api::CameraHandle) -> vimba_rs::VmbResult<()>{
+        match vimba_rs::api::list_features(camera_handle){
+            Ok(features) => {
+                    // println!("feature count = {}", features.len())
+                    for f in &features {
+                        println!("#######\nname={}, 
+                                category={:?},
+                                display_name = {:?},
+                                tool_tip = {:?},
+                                description = {:?},
+                                namespace = {:?},
+                                unit = {:?},
+                                representation = {:?},
+                                data_type = {:?},
+                                mode = {:?},
+                                flags = {:?},
+                                polling_time = {:?},
+                                visibility = {:?},
+                                is_streamable = {:?},
+                                has_selected_features = {:?},
+                                write_access = {:?},
+                                read_access = {:?},
+                                is_volatile = {:?},
+                                modify_write = {:?}
+                                \n######", 
+                                
+                                f.name, 
+                                f.category,
+                                f.display_name,
+                                f.tool_tip,
+                                f.description,
+                                f.namespace,
+                                f.unit,
+                                f.representation,
+                                f.data_type,
+                                f.mode,
+                                f.flags,
+                                f.polling_time,
+                                f.visibility,
+                                f.is_streamable,
+                                f.has_selected_features,
+                                // and below we have our flags access booleans:
+                                f.flags.write_access(),
+                                f.flags.read_access(),
+                                f.flags.is_volatile(),
+                                f.flags.modify_write());
+                    }
+                }
+            Err(e) => {
+                    eprintln!("Failed to list features: {e}");
+                }
+        }
+        Ok(())
+    }
+
+    // get feature info and also for now print it out for debugging. important info: datatype (str/bool/enum etc), flags (access,write/read, voltaitle), uhh
+    pub fn get_feature_info(
+            camera_handle: &vimba_rs::api::CameraHandle,
+            feature_str_name: &str,
+            ) -> vimba_rs::VmbResult<vimba_rs::api::FeatureInfo> 
+    {
+        let f = vimba_rs::api::feature_info_query(camera_handle, feature_str_name)?;
+
+        println!(
+            "#######\n\
+            name = {},\n\
+            category = {:?},\n\
+            display_name = {:?},\n\
+            tool_tip = {:?},\n\
+            description = {:?},\n\
+            namespace = {:?},\n\
+            unit = {:?},\n\
+            representation = {:?},\n\
+            data_type = {:?},\n\
+            flags = {:?},\n\
+            polling_time = {:?},\n\
+            visibility = {:?},\n\
+            is_streamable = {:?},\n\
+            has_selected_features = {:?},\n\
+            write_access = {:?},\n\
+            read_access = {:?},\n\
+            is_volatile = {:?},\n\
+            modify_write = {:?}\n\
+            #######",
+            f.name,
+            f.category,
+            f.display_name,
+            f.tool_tip,
+            f.description,
+            f.namespace,
+            f.unit,
+            f.representation,
+            f.data_type,
+            f.flags,
+            f.polling_time,
+            f.visibility,
+            f.is_streamable,
+            f.has_selected_features,
+            f.flags.write_access(),
+            f.flags.read_access(),
+            f.flags.is_volatile(),
+            f.flags.modify_write(),
+        );
+
+        Ok(f)
+    }
+
+
+    // write feature. inputs: feature name, thing to write
+    //  first get feature data_type, 
+    // then see feature_flags.write_access==true or not, 
+    pub fn write_feature(camera_handle: &vimba_rs::api::CameraHandle, feature_str_name: &str, value_to_write: &str) -> vimba_rs::VmbResult<()> {
+        match get_feature_info(camera_handle, feature_str_name) {
+            Ok(feature_info) =>{
+                //now that we have the feature info, simply check whether writable, check data type, etc
+                //important note for the user: read and write are self explaantory but 
+                // volatile==can change with every read
+                // modifywrite == features are adjusted to valid values, 
+                    // (so if i write 0.001 to a type that accepts int, i will write 0)
+                // TODO shld USER be responsbile for being cautious w volatile cmds
+                match feature_info.flags.write_access() {
+                    true => {
+                        match feature_info.data_type {
+                            // given datatype need to either convert value (for instance, need to convert str(x) to int(x) if datatype is x
+                            
+                            vimba_rs::api::FeatureDataType::Integer =>{
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                let value_to_write_converted = value_to_write.parse::<i64>().map_err(|_| vimba_rs::VmbError::BadParameter)?;    
+                                //to find out what type to convert to (ie i64) go to the feature_int_set function in src/api.rs and see the typedef for value
+                                println!("Converted value: {}", value_to_write_converted);
+                                vimba_rs::api::feature_int_set(camera_handle, feature_str_name, value_to_write_converted) //returns VmbResult<()>
+                                
+                            }
+                            vimba_rs::api::FeatureDataType::Float => {
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                let value_to_write_converted = value_to_write.parse::<f64>().map_err(|_| vimba_rs::VmbError::BadParameter)?;    
+                                println!("Converted value: {}", value_to_write_converted);
+                                vimba_rs::api::feature_float_set(camera_handle, feature_str_name, value_to_write_converted)
+                            }
+                            vimba_rs::api::FeatureDataType::Enum => {
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                // value for enum set is &str
+                                vimba_rs::api::feature_enum_set(camera_handle, feature_str_name, value_to_write) //returns VmbResult<()>
+                            }
+                            vimba_rs::api::FeatureDataType::String => {
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                vimba_rs::api::feature_string_set(camera_handle, feature_str_name, value_to_write) //returns VmbResult<()>
+                            }
+                            vimba_rs::api::FeatureDataType::Bool => {
+                                let value_to_write_converted = value_to_write.parse::<bool>().map_err(|_| vimba_rs::VmbError::BadParameter)?; 
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                println!("Converted value: {}", value_to_write_converted);
+                                vimba_rs::api::feature_bool_set(camera_handle, feature_str_name, value_to_write_converted) //returns VmbResult<()>
+                            
+                            }
+
+                            vimba_rs::api::FeatureDataType::Command => {
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                println!("write_feature is not a method for this feature data type.");
+
+                                Err(vimba_rs::VmbError::NotImplemented)
+                            }
+                            vimba_rs::api::FeatureDataType::Raw => {
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                println!("write_feature is not a method for this feature data type.");
+                                Err(vimba_rs::VmbError::NotImplemented)
+
+                            }
+                            vimba_rs::api::FeatureDataType::None=>{
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                println!("write_feature is not a method for this feature data type.");
+                                Err(vimba_rs::VmbError::NotImplemented)
+                            }
+                            vimba_rs::api::FeatureDataType::Unknown =>{
+                                println!("Feature data type: {:?}", feature_info.data_type);
+                                println!("write_feature is not a method for this feature data type.");
+                                Err(vimba_rs::VmbError::NotImplemented)
+                            }
+                        }
+                    }
+                    false => {
+                        // if no write access, then return the function with error InvalidAccess
+                        Err(vimba_rs::VmbError::InvalidAccess)
+                    }
+                }
+            
+
+            }
+            Err(e) => {
+                println!("Error getting feature info for {}. Error: {e}", feature_str_name);
+                Err(e)
+            }
+        }
+    }
+
+
+    pub fn shutdown() {
+        println!("called vimba_api::shutdown()");
+        vimba_rs::api::shutdown();
+    }
+
+
+
+
+
+    //function to 
 }
 
 fn main() {
@@ -211,14 +432,19 @@ fn main() {
                
             }
 
-            match vimba_api::capture_asynchronous(&camera_handle, 1) {
-                Ok(()) => {
-                    println!("Successfully executed asynchronous capture");
-                }
-                Err(e) => {
-                    eprintln!("Failed to execute asynchronous capture: {e}");
-                }
+            match vimba_api::command_run(&camera_handle, "UserSetLoad") {
+                Ok(true) => println!("Successfully ran command"),
+                Ok(_) => println!("Neither true or error was returned"),
+                Err(e) => eprintln!("Failed to run command: {e}"),
             }
+            // match vimba_api::capture_asynchronous(&camera_handle, 1) {
+            //     Ok(()) => {
+            //         println!("Successfully executed asynchronous capture");
+            //     }
+            //     Err(e) => {
+            //         eprintln!("Failed to execute asynchronous capture: {e}");
+            //     }
+            // }
         }
         Err(e) => {
             eprintln!("Failed to connect to camera: {e}");
@@ -226,7 +452,8 @@ fn main() {
     }
     }
 
-    vimba_rs::api::shutdown();
+    
+    vimba_api::shutdown();
 }
 
 // fn main() -> Result<(), Box<dyn std::error::Error>> {
