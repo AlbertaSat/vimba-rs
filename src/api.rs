@@ -462,6 +462,15 @@ pub fn camera_close(handle: CameraHandle) -> VmbResult<()> {
 // ---------------------------------------------------------------
 // Feature Functions
 // ---------------------------------------------------------------
+#[derive(Debug, Clone)]
+pub enum FeatureValue { // this public enum was created as the return type of the function `read_feature`
+    Integer(i64),
+    Float(f64),
+    Bool(bool),
+    String(String),
+    Enum(String),
+    EnumEntry(FeatureEnumEntry),
+}
 
 pub struct FeatureInfo {
     pub name: String,
@@ -481,6 +490,7 @@ pub struct FeatureInfo {
     pub has_selected_features: bool,
 }
 
+#[derive(Debug, Clone)]
 pub struct FeatureEnumEntry {
     pub name: String,
     pub display_name: String,
