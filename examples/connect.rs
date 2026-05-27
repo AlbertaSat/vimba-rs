@@ -475,29 +475,33 @@ fn main() {
     match vimba_api::connect_camera() {
         Ok(camera_handle) => {
             println!("Successfully connected to camera with handle: {:?}", &camera_handle);
-            // match vimba_rs::api::list_features(&camera_handle){ 
-            //     Ok(features) => {
-            //         // println!("feature count = {}", features.len())
-        
-            //         for f in &features {
-            //             println!("{} {:?} write_access={}", f.name, f.data_type, f.flags.write_access());
-            //         }
-            //     }
-            //     Err(e) => {
-            //         eprintln!("Failed to list features: {e}");
-            //     }
-               
-            // }
-            
-            // match vimba_api::capture_asynchronous(&camera_handle, 1) {
-            //     Ok(()) => {
-            //         println!("Successfully executed asynchronous capture");
-            //     }
-            //     Err(e) => {
-            //         eprintln!("Failed to execute asynchronous capture: {e}");
-            //     }
-            // }
 
+            println!("TEST: LIST FEATURES");
+            match vimba_rs::api::list_features(&camera_handle){ 
+                Ok(features) => {
+                    // println!("feature count = {}", features.len())
+        
+                    for f in &features {
+                        println!("{} {:?} write_access={}", f.name, f.data_type, f.flags.write_access());
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to list features: {e}");
+                }
+               
+            }
+            
+            println!("TEST: CAPTURE ASYNCH");
+            match vimba_api::capture_asynchronous(&camera_handle, 1) {
+                Ok(()) => {
+                    println!("Successfully executed asynchronous capture");
+                }
+                Err(e) => {
+                    eprintln!("Failed to execute asynchronous capture: {e}");
+                }
+            }
+
+            println!("TEST: WRITE FEATURE");
             match vimba_api::write_feature(&camera_handle, "StreamSelector", "0"){
                 Ok(()) => {
 
