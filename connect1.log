@@ -1,0 +1,228 @@
+called vimba_api::initialize()
+Successfully started api
+called vimba_api::connect_camera()
+calling VmbCamerasList with null ptr to get number of cameras found
+VmbCamerasList found 3 camera(s)
+filled 3 camera record(s)
+Debugging convert_camera_info_safe
+cameraIdString          = Ok("DEV_Cam1")
+cameraIdExtended = Ok("62:/usr/share/alliedvision-vimba-x/cti/VimbaCameraSimulatorTL.cti26:Camera Simulator Interface8:DEV_Cam1")
+cameraName        = Ok("Allied Vision Camera Simulator (G1-030_VSWIR)(DEV_Cam1)")
+modelName      = Ok("Camera Simulator (G1-030_VSWIR)")
+serialString      = Ok("0D512")
+transportLayerHandle = TransportLayerHandle { ptr: 0x2000000000000001 }
+interfaceHandle = InterfaceHandle { ptr: 0x3000000000000005 }
+localDeviceHandle = LocalDeviceHandle { ptr: 0x0 }
+streamHandles = StreamHandles { ptr: 0x0 }
+streamCount = 0
+permittedAccess = 2
+AccessFlags.access_full() = false
+AccessFlags.access_exclusive() = false
+AccessFlags.access_read() = true
+AccessFlags.access_unknown() = false
+Debugging convert_camera_info_safe
+cameraIdString          = Ok("DEV_Cam2")
+cameraIdExtended = Ok("62:/usr/share/alliedvision-vimba-x/cti/VimbaCameraSimulatorTL.cti26:Camera Simulator Interface8:DEV_Cam2")
+cameraName        = Ok("Allied Vision Camera Simulator (G1-510c)(DEV_Cam2)")
+modelName      = Ok("Camera Simulator (G1-510c)")
+serialString      = Ok("02775")
+transportLayerHandle = TransportLayerHandle { ptr: 0x2000000000000001 }
+interfaceHandle = InterfaceHandle { ptr: 0x3000000000000005 }
+localDeviceHandle = LocalDeviceHandle { ptr: 0x0 }
+streamHandles = StreamHandles { ptr: 0x0 }
+streamCount = 0
+permittedAccess = 11
+AccessFlags.access_full() = true
+AccessFlags.access_exclusive() = true
+AccessFlags.access_read() = true
+AccessFlags.access_unknown() = false
+Debugging convert_camera_info_safe
+cameraIdString          = Ok("DEV_Cam3")
+cameraIdExtended = Ok("62:/usr/share/alliedvision-vimba-x/cti/VimbaCameraSimulatorTL.cti26:Camera Simulator Interface8:DEV_Cam3")
+cameraName        = Ok("Allied Vision Camera Simulator(DEV_Cam3)")
+modelName      = Ok("Camera Simulator")
+serialString      = Ok("0D4A9")
+transportLayerHandle = TransportLayerHandle { ptr: 0x2000000000000001 }
+interfaceHandle = InterfaceHandle { ptr: 0x3000000000000005 }
+localDeviceHandle = LocalDeviceHandle { ptr: 0x0 }
+streamHandles = StreamHandles { ptr: 0x0 }
+streamCount = 0
+permittedAccess = 11
+AccessFlags.access_full() = true
+AccessFlags.access_exclusive() = true
+AccessFlags.access_read() = true
+AccessFlags.access_unknown() = false
+Found 3 camera(s)
+CameraInfo {
+    id: "DEV_Cam1",
+    extended_id: "62:/usr/share/alliedvision-vimba-x/cti/VimbaCameraSimulatorTL.cti26:Camera Simulator Interface8:DEV_Cam1",
+    camera_name: "Allied Vision Camera Simulator (G1-030_VSWIR)(DEV_Cam1)",
+    model_name: "Camera Simulator (G1-030_VSWIR)",
+    serial_number: "0D512",
+    transport_layer_handle: TransportLayerHandle {
+        ptr: 0x2000000000000001,
+    },
+    interface_handle: InterfaceHandle {
+        ptr: 0x3000000000000005,
+    },
+    local_device_handle: LocalDeviceHandle {
+        ptr: 0x0000000000000000,
+    },
+    stream_handles: StreamHandles {
+        ptr: 0x0000000000000000,
+    },
+    stream_count: 0,
+    access: 2,
+    permitted_access: AccessFlags(
+        2,
+    ),
+}
+id = DEV_Cam1
+extended_id = 62:/usr/share/alliedvision-vimba-x/cti/VimbaCameraSimulatorTL.cti26:Camera Simulator Interface8:DEV_Cam1
+access = 2
+First camera found.
+            id: DEV_Cam1,
+            extended_id: 62:/usr/share/alliedvision-vimba-x/cti/VimbaCameraSimulatorTL.cti26:Camera Simulator Interface8:DEV_Cam1,
+            camera_name: Allied Vision Camera Simulator (G1-030_VSWIR)(DEV_Cam1),
+            model_name: Camera Simulator (G1-030_VSWIR),
+            serial_number: 0D512,
+            transport_layer_handle: TransportLayerHandle { ptr: 0x2000000000000001 },
+            interface_handle: InterfaceHandle { ptr: 0x3000000000000005 },
+            local_device_handle: LocalDeviceHandle { ptr: 0x0 },
+            stream_handles: StreamHandles { ptr: 0x0 },
+            stream_count: 0,
+            access: 2
+Camera handle: CameraHandle { ptr: 0x5000000000000001 }
+Successfully connected to camera with handle: CameraHandle { ptr: 0x5000000000000001 }
+Debugging convert_camera_info_safe
+cameraIdString          = Ok("DEV_Cam1")
+cameraIdExtended = Ok("62:/usr/share/alliedvision-vimba-x/cti/VimbaCameraSimulatorTL.cti26:Camera Simulator Interface8:DEV_Cam1")
+cameraName        = Ok("Allied Vision Camera Simulator (G1-030_VSWIR)(DEV_Cam1)")
+modelName      = Ok("Camera Simulator (G1-030_VSWIR)")
+serialString      = Ok("0D512")
+transportLayerHandle = TransportLayerHandle { ptr: 0x2000000000000001 }
+interfaceHandle = InterfaceHandle { ptr: 0x3000000000000005 }
+localDeviceHandle = LocalDeviceHandle { ptr: 0x4000000000000001 }
+streamHandles = StreamHandles { ptr: 0x5640f74b6010 }
+streamCount = 1
+permittedAccess = 0
+AccessFlags.access_full() = false
+AccessFlags.access_exclusive() = false
+AccessFlags.access_read() = false
+AccessFlags.access_unknown() = false
+TEST: LIST DEVICE FEATURES (it's here)
+feature name         = DeviceID
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = DeviceVendorName
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = DeviceModelName
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = DeviceType
+featureDataType raw  = 3
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = DeviceDisplayName
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = StreamCount
+featureDataType raw  = 1
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = StreamSelector
+featureDataType raw  = 1
+featureFlags raw     = 3
+visibility raw       = 1
+feature name         = StreamID
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+DeviceID String write_access=false
+DeviceVendorName String write_access=false
+DeviceModelName String write_access=false
+DeviceType Enum write_access=false
+DeviceDisplayName String write_access=false
+StreamCount Integer write_access=false
+StreamSelector Integer write_access=true
+StreamID String write_access=false
+TEST: LIST DEVICE FEATURES
+feature name         = DeviceID
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = DeviceVendorName
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = DeviceModelName
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = DeviceType
+featureDataType raw  = 3
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = DeviceDisplayName
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = StreamCount
+featureDataType raw  = 1
+featureFlags raw     = 1
+visibility raw       = 1
+feature name         = StreamSelector
+featureDataType raw  = 1
+featureFlags raw     = 3
+visibility raw       = 1
+feature name         = StreamID
+featureDataType raw  = 4
+featureFlags raw     = 1
+visibility raw       = 1
+DeviceID String write_access=false
+DeviceVendorName String write_access=false
+DeviceModelName String write_access=false
+DeviceType Enum write_access=false
+DeviceDisplayName String write_access=false
+StreamCount Integer write_access=false
+StreamSelector Integer write_access=true
+StreamID String write_access=false
+TEST: QUERY FEATURE INFO
+feature name         = StreamSelector
+featureDataType raw  = 1
+featureFlags raw     = 3
+visibility raw       = 1
+Ok(FeatureInfo { name: "StreamSelector", category: "/StreamEnumeration", display_name: "Stream Selector", tool_tip: "", description: "Selector for the different stream channels.", namespace: "Standard", unit: "", representation: "PureNumber", data_type: Integer, mode: 3, flags: FeatureFlags(3), polling_time: 0, visibility: Beginner, is_streamable: false, has_selected_features: true })
+TEST: WRITE FEATURE
+feature name         = StreamSelector
+featureDataType raw  = 1
+featureFlags raw     = 3
+visibility raw       = 1
+#######
+name = StreamSelector,
+category = "/StreamEnumeration",
+display_name = "Stream Selector",
+tool_tip = "",
+description = "Selector for the different stream channels.",
+namespace = "Standard",
+unit = "",
+representation = "PureNumber",
+data_type = Integer,
+flags = FeatureFlags(3),
+polling_time = 0,
+visibility = Beginner,
+is_streamable = false,
+has_selected_features = true,
+write_access = true,
+read_access = true,
+is_volatile = false,
+modify_write = false
+#######
+Feature data type: Integer
+Converted value: 0
+called vimba_api::shutdown()

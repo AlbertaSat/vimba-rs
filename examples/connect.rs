@@ -11,10 +11,13 @@
 
 // this module will contain helper functions to use in the iris_handler
 mod vimba_api { 
+    // pub const cti_path: &str = "/usr/share/alliedvision-vimba-x/cti";
+    pub const cti_path: &str = "/opt/VimbaX_2025-3/cti/VimbaCameraSimulatorTL.cti";
+    
     // initialize vimba api
     pub fn initialize()  {
         println!("called vimba_api::initialize()");
-        match vimba_rs::api::startup(Some("/opt/VimbaX_2025-3/cti/VimbaCameraSimulatorTL.cti")) {
+        match vimba_rs::api::startup(Some(cti_path)) {
         Ok(()) => {
             println!("Successfully started api");
             
@@ -202,7 +205,7 @@ mod vimba_api {
     // print out features and their feature info
     //this function is js for debugging, though it should not be used in the actual handler.
     pub fn list_all_features(camera_handle: &vimba_rs::api::CameraHandle) -> vimba_rs::VmbResult<()>{
-        match vimba_rs::api::list_features(camera_handle){
+        match vimba_rs::api::list_features(&camera_handle.as_raw()){
             Ok(features) => {
                     // println!("feature count = {}", features.len())
                     for f in &features {
@@ -475,9 +478,105 @@ fn main() {
     match vimba_api::connect_camera() {
         Ok(camera_handle) => {
             println!("Successfully connected to camera with handle: {:?}", &camera_handle);
+            
+            // println!("TEST: LIST CAMERA FEATURES");
+            // match vimba_rs::api::list_features(&camera_handle.as_raw()) { 
+            //     Ok(features) => {
+            //         // println!("feature count = {}", features.len())
+        
+            //         for f in &features {
+            //             println!("{} {:?} write_access={}", f.name, f.data_type, f.flags.write_access());
+            //         }
+            //     }
+            //     Err(e) => {
+            //         eprintln!("Failed to list features: {e}");
+            //     }
+            // }
 
-            println!("TEST: LIST FEATURES");
-            match vimba_rs::api::list_features(&camera_handle){ 
+            let camera = vimba_rs::api::camera_info_query_by_handle(
+                unsafe {
+                    vimba_rs::api::LocalDeviceHandle::from_raw(camera_handle.as_raw())
+                }
+            ).unwrap();
+
+            // let raw_stream_handles = unsafe {
+            //     *camera.stream_handles.as_raw()
+            // };
+            
+            // println!("TEST: LIST STREAM FEATURES");
+            // match vimba_rs::api::list_features(&raw_stream_handles) { 
+            //     Ok(features) => {
+            //         // println!("feature count = {}", features.len())
+        
+            //         for f in &features {
+            //             println!("{} {:?} write_access={}", f.name, f.data_type, f.flags.write_access());
+            //         }
+            //     }
+            //     Err(e) => {
+            //         eprintln!("Failed to list features: {e}");
+            //     }   
+            // }
+
+            // let transport_layer_handle = unsafe {
+            //     vimba_rs::api::TransportLayerHandle::from_raw(
+            //         camera.transport_layer_handle.as_raw()
+            //     )
+            // };
+
+            // println!("TEST: LIST TRANSPORTLAYER FEATURES");
+            // match vimba_rs::api::list_features(&transport_layer_handle.as_raw()) { 
+            //     Ok(features) => {
+            //         // println!("feature count = {}", features.len())
+        
+            //         for f in &features {
+            //             println!("{} {:?} write_access={}", f.name, f.data_type, f.flags.write_access());
+            //         }
+            //     }
+            //     Err(e) => {
+            //         eprintln!("Failed to list features: {e}");
+            //     }
+            // }
+
+            let device_handle = unsafe {
+                vimba_rs::api::LocalDeviceHandle::from_raw(
+                    camera.local_device_handle.as_raw()
+                )
+            };
+
+            println!("TEST: LIST DEVICE FEATURES (it's here)");
+            match vimba_rs::api::list_features(&device_handle.as_raw()) { 
+                Ok(features) => {
+                    for f in &features {
+                        println!("{} {:?} write_access={}", f.name, f.data_type, f.flags.write_access());
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to list features: {e}");
+                }
+            }
+            
+            // println!("TEST: CAPTURE ASYNCH");
+            // match vimba_api::capture_asynchronous(&camera_handle, 1) {
+            //     Ok(()) => {
+            //         println!("Successfully executed asynchronous capture");
+            //     }
+            //     Err(e) => {
+            //         eprintln!("Failed to execute asynchronous capture: {e}");
+            //     }
+            // }
+            
+           
+            // don't do this lmfao
+            // imo make the functions generic about their handler types
+            // s.t. functions can take some transformed ver. of each handler ptr
+            // i.e. write_feature(&camera_handle.as_raw())
+            // (if you want to stick to singleton. trait of a subclass good too)
+            let totally_a_camera_handle = unsafe{
+                vimba_rs::api::CameraHandle::from_raw(device_handle.as_raw())
+            };
+
+            println!("TEST: LIST DEVICE FEATURES");
+            match vimba_rs::api::list_features(&totally_a_camera_handle.as_raw()) { 
                 Ok(features) => {
                     // println!("feature count = {}", features.len())
         
@@ -488,21 +587,20 @@ fn main() {
                 Err(e) => {
                     eprintln!("Failed to list features: {e}");
                 }
-               
-            }
-            
-            println!("TEST: CAPTURE ASYNCH");
-            match vimba_api::capture_asynchronous(&camera_handle, 1) {
-                Ok(()) => {
-                    println!("Successfully executed asynchronous capture");
-                }
-                Err(e) => {
-                    eprintln!("Failed to execute asynchronous capture: {e}");
-                }
             }
 
+            println!("TEST: QUERY FEATURE INFO");
+            let feature_info = vimba_rs::api::feature_info_query(
+                &totally_a_camera_handle,
+                "StreamSelector\0"
+            );
+            println!("{:?}", feature_info);
+            
             println!("TEST: WRITE FEATURE");
-            match vimba_api::write_feature(&camera_handle, "StreamSelector", "0"){
+            match vimba_api::write_feature(
+                &totally_a_camera_handle,
+                "StreamSelector\0",
+                "0") {
                 Ok(()) => {
 
                 }

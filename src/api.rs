@@ -472,6 +472,7 @@ pub enum FeatureValue { // this public enum was created as the return type of th
     EnumEntry(FeatureEnumEntry),
 }
 
+#[derive(Debug)]
 pub struct FeatureInfo {
     pub name: String,
     pub category: String,
@@ -556,13 +557,13 @@ impl FeatureFlags {
     }
 }
 
-pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
+pub fn list_features(handle: &VmbHandle_t) -> VmbResult<Vec<FeatureInfo>> {
     let mut found = 0 as VmbUint32_t;
     let info_size = mem::size_of::<VmbFeatureInfo_t>() as VmbUint32_t;
 
     vmb_result(unsafe {
         VmbFeaturesList(
-            handle.as_raw(),
+            *handle,
             ptr::null_mut(),
             0 as u32,
             &mut found,
@@ -579,7 +580,7 @@ pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
 
     vmb_result(unsafe {
         VmbFeaturesList(
-            handle.as_raw(),
+            *handle,
             features_raw.as_mut_ptr().cast(),
             found,
             &mut found,
