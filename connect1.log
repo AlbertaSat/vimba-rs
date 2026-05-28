@@ -103,55 +103,30 @@ serialString      = Ok("0D512")
 transportLayerHandle = TransportLayerHandle { ptr: 0x2000000000000001 }
 interfaceHandle = InterfaceHandle { ptr: 0x3000000000000005 }
 localDeviceHandle = LocalDeviceHandle { ptr: 0x4000000000000001 }
-streamHandles = StreamHandles { ptr: 0x5640f74b6010 }
+streamHandles = StreamHandles { ptr: 0x56192f35d000 }
 streamCount = 1
 permittedAccess = 0
 AccessFlags.access_full() = false
 AccessFlags.access_exclusive() = false
 AccessFlags.access_read() = false
 AccessFlags.access_unknown() = false
+TEST: CAPTURE ASYNCH
+########################### CAPTURE ASYNCHRONOUS ###########################
+size of payload: 341120
+0
+Frame pushed to frames:
+VmbFrame { buffer: 0x7f2590711010, bufferSize: 341120, context: [0x0, 0x0, 0x0, 0x0], receiveStatus: 0, frameID: 0, timestamp: 0, imageData: 0x0, receiveFlags: 0, pixelFormat: 0, width: 0, height: 0, offsetX: 0, offsetY: 0, payloadType: 0, chunkDataPresent: 0 }
+Frames: [VmbFrame { buffer: 0x7f2590711010, bufferSize: 341120, context: [0x0, 0x0, 0x0, 0x0], receiveStatus: 0, frameID: 0, timestamp: 0, imageData: 0x0, receiveFlags: 0, pixelFormat: 0, width: 0, height: 0, offsetX: 0, offsetY: 0, payloadType: 0, chunkDataPresent: 0 }]
+Announcing frames
+Capture start
+Calling capture_frame_queue
+Running AcquisitionStart
+feature_command_run CameraHandle { ptr: 0x5000000000000001 }
+handle as raw 0x5000000000000001
+Running AcquisitionStop
+feature_command_run CameraHandle { ptr: 0x5000000000000001 }
+handle as raw 0x5000000000000001
 TEST: LIST DEVICE FEATURES (it's here)
-feature name         = DeviceID
-featureDataType raw  = 4
-featureFlags raw     = 1
-visibility raw       = 1
-feature name         = DeviceVendorName
-featureDataType raw  = 4
-featureFlags raw     = 1
-visibility raw       = 1
-feature name         = DeviceModelName
-featureDataType raw  = 4
-featureFlags raw     = 1
-visibility raw       = 1
-feature name         = DeviceType
-featureDataType raw  = 3
-featureFlags raw     = 1
-visibility raw       = 1
-feature name         = DeviceDisplayName
-featureDataType raw  = 4
-featureFlags raw     = 1
-visibility raw       = 1
-feature name         = StreamCount
-featureDataType raw  = 1
-featureFlags raw     = 1
-visibility raw       = 1
-feature name         = StreamSelector
-featureDataType raw  = 1
-featureFlags raw     = 3
-visibility raw       = 1
-feature name         = StreamID
-featureDataType raw  = 4
-featureFlags raw     = 1
-visibility raw       = 1
-DeviceID String write_access=false
-DeviceVendorName String write_access=false
-DeviceModelName String write_access=false
-DeviceType Enum write_access=false
-DeviceDisplayName String write_access=false
-StreamCount Integer write_access=false
-StreamSelector Integer write_access=true
-StreamID String write_access=false
-TEST: LIST DEVICE FEATURES
 feature name         = DeviceID
 featureDataType raw  = 4
 featureFlags raw     = 1

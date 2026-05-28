@@ -166,7 +166,7 @@ mod vimba_api {
         println!("Running AcquisitionStart");
         //start image acquisition:
         // run camera command feature AcquisitionStart
-        vimba_rs::api::feature_command_run(camera_handle, "AcquisitionStart")?;
+        vimba_rs::api::feature_command_run(camera_handle, "AcquisitionStart\0")?;
 
 
         //image is within callback function
@@ -176,7 +176,7 @@ mod vimba_api {
         // run camera command feature AcquisitionStop
         println!("Running AcquisitionStop");
 
-        vimba_rs::api::feature_command_run(camera_handle, "AcquisitionStop")?;
+        vimba_rs::api::feature_command_run(camera_handle, "AcquisitionStop\0")?;
 
 
         //cleanup
@@ -537,6 +537,16 @@ fn main() {
             //     }
             // }
 
+            println!("TEST: CAPTURE ASYNCH");
+            match vimba_api::capture_asynchronous(&camera_handle, 1) {
+                Ok(()) => {
+                    println!("Successfully executed asynchronous capture");
+                }
+                Err(e) => {
+                    eprintln!("Failed to execute asynchronous capture: {e}");
+                }
+            }
+            
             let device_handle = unsafe {
                 vimba_rs::api::LocalDeviceHandle::from_raw(
                     camera.local_device_handle.as_raw()
@@ -554,17 +564,6 @@ fn main() {
                     eprintln!("Failed to list features: {e}");
                 }
             }
-            
-            // println!("TEST: CAPTURE ASYNCH");
-            // match vimba_api::capture_asynchronous(&camera_handle, 1) {
-            //     Ok(()) => {
-            //         println!("Successfully executed asynchronous capture");
-            //     }
-            //     Err(e) => {
-            //         eprintln!("Failed to execute asynchronous capture: {e}");
-            //     }
-            // }
-            
            
             // don't do this lmfao
             // imo make the functions generic about their handler types
@@ -574,20 +573,6 @@ fn main() {
             let totally_a_camera_handle = unsafe{
                 vimba_rs::api::CameraHandle::from_raw(device_handle.as_raw())
             };
-
-            println!("TEST: LIST DEVICE FEATURES");
-            match vimba_rs::api::list_features(&totally_a_camera_handle.as_raw()) { 
-                Ok(features) => {
-                    // println!("feature count = {}", features.len())
-        
-                    for f in &features {
-                        println!("{} {:?} write_access={}", f.name, f.data_type, f.flags.write_access());
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Failed to list features: {e}");
-                }
-            }
 
             println!("TEST: QUERY FEATURE INFO");
             let feature_info = vimba_rs::api::feature_info_query(
