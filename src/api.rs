@@ -1104,7 +1104,7 @@ pub fn feature_command_run(handle: &impl VmbHandle, name: &str) -> VmbResult<()>
     // raw strings passed here must be null terminated so that we can convert them into C strings!
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?; //creating a CString, documentation here: https://doc.rust-lang.org/beta/std/ffi/struct.CString.html  
 
-    println!("feature_command_run {:?}", handle);
+    // println!("feature_command_run {:?}", handle);
     println!("handle as raw {:?}", handle.as_raw());
 
     vmb_result(unsafe { VmbFeatureCommandRun(handle.as_raw(), feature_name.as_ptr()) })?; //CString implements as_ptr thru the Deref trait to get a *const c_char to extern functions which expect nul-temrinated string. NOTE that as_ptr returns a READ ONLY pointer!!!! UB if C code writes to it. For our purposes, all C strings can be read only (bcuz they r just flags to the API)
