@@ -1,6 +1,6 @@
 use super::{error::*, ffi as vmbffi, ffi::*, utils::*};
 use std::{
-    ffi::{c_char, c_double, CString},
+    ffi::{CString, c_char, c_double},
     mem::{self, MaybeUninit},
     ptr,
 };
@@ -88,6 +88,34 @@ impl CameraHandle {
     }
 }
 
+pub trait VmbHandle {
+    fn as_raw(&self) -> VmbHandle_t;
+}
+
+impl VmbHandle for TransportLayerHandle {
+    fn as_raw(&self) -> VmbHandle_t {
+        self.ptr
+    }
+}
+
+impl VmbHandle for InterfaceHandle {
+    fn as_raw(&self) -> VmbHandle_t {
+        self.ptr
+    }
+}
+
+impl VmbHandle for LocalDeviceHandle {
+    fn as_raw(&self) -> VmbHandle_t {
+        self.ptr
+    }
+}
+
+impl VmbHandle for CameraHandle {
+    fn as_raw(&self) -> VmbHandle_t {
+        self.ptr
+    }
+}
+
 pub type VmbFrameCallback = vmbffi::VmbFrameCallback;
 
 // ---------------------------------------------------------------
@@ -132,8 +160,8 @@ pub struct CameraInfo {
     pub local_device_handle: LocalDeviceHandle,
     pub stream_handles: StreamHandles,
     pub stream_count: u32,
-    pub access: u32, //note from Olivia: access was previously AccessMode type but this broke because camera.permittedAccess is a bitfield wise number 
-    pub permitted_access: AccessFlags, //use camera_info.permitted_access.access_full() -> bool 
+    pub access: u32, //note from Olivia: access was previously AccessMode type but this broke because camera.permittedAccess is a bitfield wise number
+    pub permitted_access: AccessFlags, //use camera_info.permitted_access.access_full() -> bool
 }
 
 pub fn startup(path_config: Option<&str>) -> VmbResult<()> {
@@ -149,7 +177,7 @@ pub fn shutdown() {
         VmbShutdown();
     }
 }
- 
+
 // ---------------------------------------------------------------
 // Transportaion Layer Enumeration & Information
 // ---------------------------------------------------------------
@@ -248,9 +276,7 @@ pub fn interfaces_list() -> VmbResult<Vec<InterfaceInfo>> {
     let mut found = 0 as VmbUint32_t;
     let info_size = mem::size_of::<VmbInterfaceInfo_t>() as VmbUint32_t;
 
-    vmb_result(unsafe {
-        VmbInterfacesList(ptr::null_mut(), 0 as u32, &mut found, info_size)
-    })?;
+    vmb_result(unsafe { VmbInterfacesList(ptr::null_mut(), 0 as u32, &mut found, info_size) })?;
 
     if found == 0 {
         return Ok(Vec::new());
@@ -298,9 +324,10 @@ pub fn interfaces_list() -> VmbResult<Vec<InterfaceInfo>> {
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, FromRepr)]
-pub enum AccessMode { //a note from Olivia: each mode corresponds to 1 bit. camera.permittedAccess returns a number that fills in each bitfield. 
-    // might return 11 = b1011 = 8+ 4+ 1  
-    // do 
+pub enum AccessMode {
+    //a note from Olivia: each mode corresponds to 1 bit. camera.permittedAccess returns a number that fills in each bitfield.
+    // might return 11 = b1011 = 8+ 4+ 1
+    // do
     None = VmbAccessModeType_VmbAccessModeNone, //0000
     Full = VmbAccessModeType_VmbAccessModeFull, //0001
     Read = VmbAccessModeType_VmbAccessModeRead, //0010
@@ -338,9 +365,7 @@ pub fn cameras_list() -> VmbResult<Vec<CameraInfo>> {
     let mut found = 0 as VmbUint32_t;
     let info_size = mem::size_of::<VmbCameraInfo_t>() as VmbUint32_t;
     println!("calling VmbCamerasList with null ptr to get number of cameras found");
-    vmb_result(unsafe {
-        VmbCamerasList(ptr::null_mut(), 0 as u32, &mut found, info_size)
-    })?;
+    vmb_result(unsafe { VmbCamerasList(ptr::null_mut(), 0 as u32, &mut found, info_size) })?;
     println!("VmbCamerasList found {} camera(s)", found);
     if found == 0 {
         return Ok(Vec::new()); //if no camera found, return an empty vector 
@@ -349,7 +374,6 @@ pub fn cameras_list() -> VmbResult<Vec<CameraInfo>> {
     let mut cameras_raw: Vec<mem::MaybeUninit<VmbCameraInfo_t>> =
         vec![mem::MaybeUninit::uninit(); found as usize];
 
-    
     vmb_result(unsafe {
         VmbCamerasList(
             cameras_raw.as_mut_ptr().cast(),
@@ -364,10 +388,9 @@ pub fn cameras_list() -> VmbResult<Vec<CameraInfo>> {
         .iter()
         .map(|camera| convert_camera_info_safe(*camera))
         .collect::<VmbResult<Vec<CameraInfo>>>()
-    
 }
 
-pub fn camera_info_query_by_handle(handle: LocalDeviceHandle) -> VmbResult<CameraInfo> {
+pub fn camera_info_query_by_handle(handle: &impl VmbHandle) -> VmbResult<CameraInfo> {
     let mut camera_info_raw: MaybeUninit<VmbCameraInfo_t> = MaybeUninit::uninit();
     let info_size = mem::size_of::<VmbCameraInfo_t>() as VmbUint32_t;
 
@@ -382,23 +405,57 @@ fn convert_camera_info_safe(camera: mem::MaybeUninit<VmbCameraInfo_t>) -> VmbRes
     let camera = unsafe { camera.assume_init() };
     println!("Debugging convert_camera_info_safe");
 
-    println!("cameraIdString          = {:?}", string_from_raw(camera.cameraIdString).map_err(|_| VmbError::InternalFault));
-    println!("cameraIdExtended = {:?}",        string_from_raw(camera.cameraIdExtended).map_err(|_| VmbError::InternalFault));
-    println!("cameraName        = {:?}",       string_from_raw(camera.cameraName).map_err(|_| VmbError::InternalFault));
-    println!("modelName      = {:?}",          string_from_raw(camera.modelName).map_err(|_| VmbError::InternalFault));
-    println!("serialString      = {:?}",         string_from_raw(camera.serialString).map_err(|_| VmbError::InternalFault));
-    println!("transportLayerHandle = {:?}",      unsafe {TransportLayerHandle::from_raw(camera.transportLayerHandle)});
-    println!("interfaceHandle = {:?}",           unsafe {InterfaceHandle::from_raw(camera.interfaceHandle)});
-    println!("localDeviceHandle = {:?}",         unsafe {LocalDeviceHandle::from_raw(camera.localDeviceHandle)});
-    println!("streamHandles = {:?}",             unsafe {StreamHandles::from_raw(camera.streamHandles)});
-    println!("streamCount = {:?}",               camera.streamCount);
+    println!(
+        "cameraIdString          = {:?}",
+        string_from_raw(camera.cameraIdString).map_err(|_| VmbError::InternalFault)
+    );
+    println!(
+        "cameraIdExtended = {:?}",
+        string_from_raw(camera.cameraIdExtended).map_err(|_| VmbError::InternalFault)
+    );
+    println!(
+        "cameraName        = {:?}",
+        string_from_raw(camera.cameraName).map_err(|_| VmbError::InternalFault)
+    );
+    println!(
+        "modelName      = {:?}",
+        string_from_raw(camera.modelName).map_err(|_| VmbError::InternalFault)
+    );
+    println!(
+        "serialString      = {:?}",
+        string_from_raw(camera.serialString).map_err(|_| VmbError::InternalFault)
+    );
+    println!("transportLayerHandle = {:?}", unsafe {
+        TransportLayerHandle::from_raw(camera.transportLayerHandle)
+    });
+    println!("interfaceHandle = {:?}", unsafe {
+        InterfaceHandle::from_raw(camera.interfaceHandle)
+    });
+    println!("localDeviceHandle = {:?}", unsafe {
+        LocalDeviceHandle::from_raw(camera.localDeviceHandle)
+    });
+    println!("streamHandles = {:?}", unsafe {
+        StreamHandles::from_raw(camera.streamHandles)
+    });
+    println!("streamCount = {:?}", camera.streamCount);
     println!("permittedAccess = {:?}", camera.permittedAccess);
-    println!("AccessFlags.access_full() = {:?}",    AccessFlags(camera.permittedAccess).access_full());
-    println!("AccessFlags.access_exclusive() = {:?}",    AccessFlags(camera.permittedAccess).access_exclusive());
-    println!("AccessFlags.access_read() = {:?}",    AccessFlags(camera.permittedAccess).access_read());
-    println!("AccessFlags.access_unknown() = {:?}",    AccessFlags(camera.permittedAccess).access_unknown());
+    println!(
+        "AccessFlags.access_full() = {:?}",
+        AccessFlags(camera.permittedAccess).access_full()
+    );
+    println!(
+        "AccessFlags.access_exclusive() = {:?}",
+        AccessFlags(camera.permittedAccess).access_exclusive()
+    );
+    println!(
+        "AccessFlags.access_read() = {:?}",
+        AccessFlags(camera.permittedAccess).access_read()
+    );
+    println!(
+        "AccessFlags.access_unknown() = {:?}",
+        AccessFlags(camera.permittedAccess).access_unknown()
+    );
 
-    
     Ok(CameraInfo {
         id: string_from_raw(camera.cameraIdString).map_err(|_| VmbError::InternalFault)?,
         extended_id: string_from_raw(camera.cameraIdExtended)
@@ -424,11 +481,7 @@ pub fn camera_info_query(camera_id: &str) -> VmbResult<CameraInfo> {
     let camera_id = CString::new(camera_id).map_err(|_| VmbError::BadParameter)?;
 
     vmb_result(unsafe {
-        VmbCameraInfoQuery(
-            camera_id.as_ptr(),
-            camera_info_raw.as_mut_ptr(),
-            info_size,
-        )
+        VmbCameraInfoQuery(camera_id.as_ptr(), camera_info_raw.as_mut_ptr(), info_size)
     })?;
 
     convert_camera_info_safe(camera_info_raw)
@@ -463,7 +516,8 @@ pub fn camera_close(handle: CameraHandle) -> VmbResult<()> {
 // Feature Functions
 // ---------------------------------------------------------------
 #[derive(Debug, Clone)]
-pub enum FeatureValue { // this public enum was created as the return type of the function `read_feature`
+pub enum FeatureValue {
+    // this public enum was created as the return type of the function `read_feature`
     Integer(i64),
     Float(f64),
     Bool(bool),
@@ -527,7 +581,8 @@ pub enum FeatureVisibility {
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, FromRepr)]
-pub enum FeatureMode { //like AccessMode
+pub enum FeatureMode {
+    //like AccessMode
     None = VmbFeatureFlagsType_VmbFeatureFlagsNone,
     Read = VmbFeatureFlagsType_VmbFeatureFlagsRead,
     Write = VmbFeatureFlagsType_VmbFeatureFlagsWrite,
@@ -556,7 +611,7 @@ impl FeatureFlags {
     }
 }
 
-pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
+pub fn list_features(handle: &impl VmbHandle) -> VmbResult<Vec<FeatureInfo>> {
     let mut found = 0 as VmbUint32_t;
     let info_size = mem::size_of::<VmbFeatureInfo_t>() as VmbUint32_t;
 
@@ -593,7 +648,7 @@ pub fn list_features(handle: &CameraHandle) -> VmbResult<Vec<FeatureInfo>> {
         .collect::<VmbResult<Vec<FeatureInfo>>>()
 }
 
-fn convert_feature_info_safe(camera: mem::MaybeUninit<VmbFeatureInfo_t>,) -> VmbResult<FeatureInfo> {
+fn convert_feature_info_safe(camera: mem::MaybeUninit<VmbFeatureInfo_t>) -> VmbResult<FeatureInfo> {
     let feature = unsafe { camera.assume_init() };
 
     let name = string_from_raw(feature.name).map_err(|_| VmbError::InternalFault)?;
@@ -605,13 +660,10 @@ fn convert_feature_info_safe(camera: mem::MaybeUninit<VmbFeatureInfo_t>,) -> Vmb
     Ok(FeatureInfo {
         name: string_from_raw(feature.name).map_err(|_| VmbError::InternalFault)?,
         category: string_from_raw(feature.category).map_err(|_| VmbError::InternalFault)?,
-        display_name: string_from_raw(feature.displayName)
-            .map_err(|_| VmbError::InternalFault)?,
+        display_name: string_from_raw(feature.displayName).map_err(|_| VmbError::InternalFault)?,
         tool_tip: string_from_raw(feature.tooltip).map_err(|_| VmbError::InternalFault)?,
-        description: string_from_raw(feature.description)
-            .map_err(|_| VmbError::InternalFault)?,
-        namespace: string_from_raw(feature.sfncNamespace)
-            .map_err(|_| VmbError::InternalFault)?,
+        description: string_from_raw(feature.description).map_err(|_| VmbError::InternalFault)?,
+        namespace: string_from_raw(feature.sfncNamespace).map_err(|_| VmbError::InternalFault)?,
         unit: string_from_raw(feature.unit).map_err(|_| VmbError::InternalFault)?,
         representation: string_from_raw(feature.representation)
             .map_err(|_| VmbError::InternalFault)?,
@@ -627,16 +679,16 @@ fn convert_feature_info_safe(camera: mem::MaybeUninit<VmbFeatureInfo_t>,) -> Vmb
     })
 }
 
-pub fn feature_info_query(handle: &CameraHandle, name: &str) -> VmbResult<FeatureInfo> {
-    let feature_name = raw_from_str(name);
+pub fn feature_info_query(handle: &impl VmbHandle, name: &str) -> VmbResult<FeatureInfo> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
 
     let mut feature_info_raw = mem::MaybeUninit::<VmbFeatureInfo_t>::uninit();
-    let info_size = mem::size_of::<VmbFeatureInfo_t>() as VmbUint32_t; 
+    let info_size = mem::size_of::<VmbFeatureInfo_t>() as VmbUint32_t;
 
     vmb_result(unsafe {
         VmbFeatureInfoQuery(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             feature_info_raw.as_mut_ptr(),
             info_size,
         )
@@ -644,16 +696,16 @@ pub fn feature_info_query(handle: &CameraHandle, name: &str) -> VmbResult<Featur
 
     convert_feature_info_safe(feature_info_raw)
 }
-pub fn list_feature_selected(handle: &CameraHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
-    let feature_name = raw_from_str(name);
+pub fn list_feature_selected(handle: &impl VmbHandle, name: &str) -> VmbResult<Vec<FeatureInfo>> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut num_found = 0 as VmbUint32_t;
     let feature_info_size = mem::size_of::<VmbFeatureInfo>() as VmbUint32_t;
 
     vmb_result(unsafe {
         VmbFeatureListSelected(
             handle.as_raw(),
-            feature_name,
-            std::ptr::null_mut(),    // empty feature list
+            feature_name.as_ptr(),
+            std::ptr::null_mut(), // empty feature list
             0 as u32,
             &mut num_found,
             feature_info_size,
@@ -664,12 +716,13 @@ pub fn list_feature_selected(handle: &CameraHandle, name: &str) -> VmbResult<Vec
         return Ok(Vec::new());
     }
 
-    let mut features_raw: Vec<mem::MaybeUninit<VmbFeatureInfo>> = vec![mem::MaybeUninit::uninit(); num_found as usize];
+    let mut features_raw: Vec<mem::MaybeUninit<VmbFeatureInfo>> =
+        vec![mem::MaybeUninit::uninit(); num_found as usize];
 
     vmb_result(unsafe {
         VmbFeatureListSelected(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             features_raw.as_mut_ptr().cast(),
             num_found,
             &mut num_found,
@@ -683,15 +736,15 @@ pub fn list_feature_selected(handle: &CameraHandle, name: &str) -> VmbResult<Vec
         .collect::<VmbResult<Vec<FeatureInfo>>>()
 }
 
-pub fn feature_access_query(handle: &CameraHandle, name: &str) -> VmbResult<[i8; 2]> {
-    let feature_name = raw_from_str(name);
+pub fn feature_access_query(handle: &impl VmbHandle, name: &str) -> VmbResult<[i8; 2]> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut is_readable = false as VmbBool_t;
     let mut is_writable = false as VmbBool_t;
 
     vmb_result(unsafe {
         VmbFeatureAccessQuery(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             &mut is_readable,
             &mut is_writable,
         )
@@ -700,70 +753,54 @@ pub fn feature_access_query(handle: &CameraHandle, name: &str) -> VmbResult<[i8;
     Ok([is_readable, is_writable])
 }
 
-pub fn feature_int_get(handle: &CameraHandle, name: &str) -> VmbResult<i64> {
-    let feature_name = raw_from_str(name);
+pub fn feature_int_get(handle: &impl VmbHandle, name: &str) -> VmbResult<i64> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value = 0 as VmbInt64_t;
 
-    vmb_result(unsafe {
-        VmbFeatureIntGet(
-            handle.as_raw(),
-            feature_name,
-            &mut value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureIntGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
 
     Ok(value)
 }
 
-pub fn feature_int_set(handle: &CameraHandle, name: &str, value: i64) -> VmbResult<()> {
+pub fn feature_int_set(handle: &impl VmbHandle, name: &str, value: i64) -> VmbResult<()> {
     let value = value as VmbInt64_t;
-    let feature_name = raw_from_str(name);
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
 
-    vmb_result(unsafe {
-        VmbFeatureIntSet(
-            handle.as_raw(),
-            feature_name,
-            value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureIntSet(handle.as_raw(), feature_name.as_ptr(), value) })?;
 
     Ok(())
 }
 
-pub fn feature_int_range_query(handle: &CameraHandle, name: &str) -> VmbResult<[i64; 2]> {
-    let feature_name = raw_from_str(name);
+pub fn feature_int_range_query(handle: &impl VmbHandle, name: &str) -> VmbResult<[i64; 2]> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut min: i64 = -1 as VmbInt64_t;
     let mut max: i64 = -1 as VmbInt64_t;
 
     vmb_result(unsafe {
-        VmbFeatureIntRangeQuery(
-            handle.as_raw(),
-            feature_name,
-            &mut min,
-            &mut max,
-        )
+        VmbFeatureIntRangeQuery(handle.as_raw(), feature_name.as_ptr(), &mut min, &mut max)
     })?;
 
     Ok([min, max])
 }
 
-pub fn feature_int_increment_query(handle: &CameraHandle, name: &str, value: i64) -> VmbResult<i64> {
-    let feature_name = raw_from_str(name);
+pub fn feature_int_increment_query(
+    handle: &impl VmbHandle,
+    name: &str,
+    value: i64,
+) -> VmbResult<i64> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value = value as VmbInt64_t;
 
-    vmb_result(unsafe{
-        VmbFeatureIntIncrementQuery(
-            handle.as_raw(),
-            feature_name,
-            &mut value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureIntIncrementQuery(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
 
     Ok(value)
 }
 
-pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> VmbResult<Vec<i64>> {
-    let feature_name = raw_from_str(name);
+pub fn feature_int_valid_value_set_query(
+    handle: &impl VmbHandle,
+    name: &str,
+) -> VmbResult<Vec<i64>> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut set_size: u32 = 0;
     let buffer_size: u32 = 0;
 
@@ -771,10 +808,10 @@ pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> V
     vmb_result(unsafe {
         VmbFeatureIntValidValueSetQuery(
             handle.as_raw(),
-            feature_name,
-            std::ptr::null_mut(),   // pass null pointer to buffer to only return buffer size in buffer_size
+            feature_name.as_ptr(),
+            std::ptr::null_mut(), // pass null pointer to buffer to only return buffer size in buffer_size
             buffer_size,
-            &mut set_size, 
+            &mut set_size,
         )
     })?;
 
@@ -788,7 +825,7 @@ pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> V
     vmb_result(unsafe {
         VmbFeatureIntValidValueSetQuery(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             buffer.as_mut_ptr(),
             buffer.len() as VmbUint32_t,
             &mut set_size,
@@ -798,61 +835,44 @@ pub fn feature_int_valid_value_set_query(handle: &CameraHandle, name: &str) -> V
     Ok(buffer)
 }
 
-pub fn feature_float_get(handle: &CameraHandle, name: &str) -> VmbResult<f64> {
-    let feature_name = raw_from_str(name);
+pub fn feature_float_get(handle: &impl VmbHandle, name: &str) -> VmbResult<f64> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value: f64 = 0.0;
 
-    vmb_result( unsafe {
-        VmbFeatureFloatGet(
-            handle.as_raw(),
-            feature_name,
-            &mut value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureFloatGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
 
     Ok(value)
 }
 
-pub fn feature_float_set(handle: &CameraHandle, name: &str, value: f64) -> VmbResult<()> {
-    let feature_name = raw_from_str(name);
+pub fn feature_float_set(handle: &impl VmbHandle, name: &str, value: f64) -> VmbResult<()> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
 
-    vmb_result( unsafe {
-        VmbFeatureFloatSet(
-            handle.as_raw(),
-            feature_name,
-            value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureFloatSet(handle.as_raw(), feature_name.as_ptr(), value) })?;
 
     Ok(())
 }
 
-pub fn feature_float_range_query(handle: &CameraHandle, name: &str) -> VmbResult<[f64; 2]> {
-    let feature_name = raw_from_str(name);
+pub fn feature_float_range_query(handle: &impl VmbHandle, name: &str) -> VmbResult<[f64; 2]> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut min: f64 = -1.0;
     let mut max: f64 = -1.0;
 
     vmb_result(unsafe {
-        VmbFeatureFloatRangeQuery(
-            handle.as_raw(),
-            feature_name,
-            &mut min,
-            &mut max,
-        )
+        VmbFeatureFloatRangeQuery(handle.as_raw(), feature_name.as_ptr(), &mut min, &mut max)
     })?;
 
     Ok([min, max])
 }
 
-pub fn feature_float_increment_query(handle: &CameraHandle, name: &str) -> VmbResult<f64> {
-    let feature_name = raw_from_str(name);
+pub fn feature_float_increment_query(handle: &impl VmbHandle, name: &str) -> VmbResult<f64> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut has_increment: VmbBool_t = 0;
     let mut value: c_double = 0.0;
 
     vmb_result(unsafe {
         VmbFeatureFloatIncrementQuery(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             &mut has_increment,
             &mut value,
         )
@@ -861,52 +881,39 @@ pub fn feature_float_increment_query(handle: &CameraHandle, name: &str) -> VmbRe
     Ok(value)
 }
 
-pub fn feature_enum_get(handle: &CameraHandle, name: &str) -> VmbResult<String> {
-    let feature_name = raw_from_str(name);
+pub fn feature_enum_get(handle: &impl VmbHandle, name: &str) -> VmbResult<String> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value: *const std::os::raw::c_char = std::ptr::null();
 
-    vmb_result( unsafe {
-        VmbFeatureEnumGet(
-            handle.as_raw(),
-            feature_name,
-            &mut value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureEnumGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
 
     if value.is_null() {
-        return Err(VmbError::NoData)
+        return Err(VmbError::NoData);
     }
 
     let value = string_from_raw(value).map_err(|_| VmbError::InternalFault)?;
     Ok(value)
 }
 
-pub fn feature_enum_set(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<()> {
-    let feature_name = raw_from_str(name);
-    let feature_value = raw_from_str(value);
+pub fn feature_enum_set(handle: &impl VmbHandle, name: &str, value: &str) -> VmbResult<()> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
+    let feature_value = CString::new(value).map_err(|_| VmbError::BadParameter)?;
 
-    vmb_result(unsafe {
-        VmbFeatureEnumSet(
-            handle.as_raw(),
-            feature_name,
-            feature_value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureEnumSet(handle.as_raw(), feature_name.as_ptr(), feature_value.as_ptr()) })?;
 
     Ok(())
-
 }
 
-pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<Vec<String>> {
-    let feature_name = raw_from_str(name);
+pub fn feature_enum_range_query(handle: &impl VmbHandle, name: &str) -> VmbResult<Vec<String>> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut num_found = 0;
 
     // first call to identify number of valud enums
     vmb_result(unsafe {
         VmbFeatureEnumRangeQuery(
             handle.as_raw(),
-            feature_name,
-            std::ptr::null_mut(),       // pass a null pointer to query size
+            feature_name.as_ptr(),
+            std::ptr::null_mut(), // pass a null pointer to query size
             0,
             &mut num_found,
         )
@@ -923,7 +930,7 @@ pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<
     vmb_result(unsafe {
         VmbFeatureEnumRangeQuery(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             raw_ptrs.as_mut_ptr(),
             num_found,
             &mut num_found,
@@ -943,16 +950,20 @@ pub fn feature_enum_range_query(handle: &CameraHandle, name: &str) -> VmbResult<
     Ok(values)
 }
 
-pub fn feature_enum_is_available(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<bool> {
-    let feature_name = raw_from_str(name);
-    let feature_value = raw_from_str(value);
+pub fn feature_enum_is_available(
+    handle: &impl VmbHandle,
+    name: &str,
+    value: &str,
+) -> VmbResult<bool> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
+    let feature_value = CString::new(value).map_err(|_| VmbError::BadParameter)?;
     let mut is_available = false as VmbBool_t;
 
     vmb_result(unsafe {
         VmbFeatureEnumIsAvailable(
             handle.as_raw(),
-            feature_name,
-            feature_value,
+            feature_name.as_ptr(),
+            feature_value.as_ptr(),
             &mut is_available,
         )
     })?;
@@ -960,51 +971,47 @@ pub fn feature_enum_is_available(handle: &CameraHandle, name: &str, value: &str)
     Ok(is_available != 0)
 }
 
-pub fn feature_enum_as_int(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<i64> {
-    let feature_name = raw_from_str(name);
-    let feature_value = raw_from_str(value);
+pub fn feature_enum_as_int(handle: &impl VmbHandle, name: &str, value: &str) -> VmbResult<i64> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
+    let feature_value = CString::new(value).map_err(|_| VmbError::BadParameter)?;
     let mut int_value: i64 = -1 as VmbInt64_t;
 
     vmb_result(unsafe {
-        VmbFeatureEnumAsInt(
-            handle.as_raw(),
-            feature_name,
-            feature_value,
-            &mut int_value,
-        )
+        VmbFeatureEnumAsInt(handle.as_raw(), feature_name.as_ptr(), feature_value.as_ptr(), &mut int_value)
     })?;
 
     Ok(int_value)
 }
 
-pub fn feature_enum_as_string(handle: &CameraHandle, name: &str, int_value: i64) -> VmbResult<String> {
-    let feature_name = raw_from_str(name);
+pub fn feature_enum_as_string(
+    handle: &impl VmbHandle,
+    name: &str,
+    int_value: i64,
+) -> VmbResult<String> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut string_value: *const std::os::raw::c_char = std::ptr::null();
 
     vmb_result(unsafe {
         VmbFeatureEnumAsString(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             int_value as VmbInt64_t,
             &mut string_value,
         )
     })?;
 
-    let value = string_from_raw(string_value)
-        .map_err(|_| VmbError::InternalFault)?;
+    let value = string_from_raw(string_value).map_err(|_| VmbError::InternalFault)?;
     Ok(value)
 }
 
 pub fn feature_enum_entry_get(
-    handle: &CameraHandle,
+    handle: &impl VmbHandle,
     feature_name: &str,
     entry_name: &str,
-) -> VmbResult<FeatureEnumEntry> 
-{
-    let feature_name = std::ffi::CString::new(feature_name)
-        .map_err(|_| VmbError::BadParameter)?;
-    let entry_name = std::ffi::CString::new(entry_name)
-        .map_err(|_| VmbError::BadParameter)?;
+) -> VmbResult<FeatureEnumEntry> {
+    let feature_name =
+        std::ffi::CString::new(feature_name).map_err(|_| VmbError::BadParameter)?;
+    let entry_name = std::ffi::CString::new(entry_name).map_err(|_| VmbError::BadParameter)?;
 
     let enum_entry_size = std::mem::size_of::<VmbFeatureEnumEntry_t>() as VmbUint32_t;
     let mut raw = std::mem::MaybeUninit::<VmbFeatureEnumEntry_t>::uninit();
@@ -1028,123 +1035,97 @@ pub fn feature_enum_entry_get(
         description: string_from_raw(raw.description).map_err(|_| VmbError::InternalFault)?,
         int_value: raw.intValue,
         snfc_namespace: string_from_raw(raw.sfncNamespace).map_err(|_| VmbError::InternalFault)?,
-        visibility: FeatureVisibility::from_repr(raw.visibility)
-            .ok_or(VmbError::InternalFault)?,
+        visibility: FeatureVisibility::from_repr(raw.visibility).ok_or(VmbError::InternalFault)?,
     })
 }
 
-pub fn feature_string_get(handle: &CameraHandle, name: &str) -> VmbResult<String> {
-    let feature_name = raw_from_str(name);
+pub fn feature_string_get(handle: &impl VmbHandle, name: &str) -> VmbResult<String> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value_buffer = vec![0u8; 1024];
 
     vmb_result(unsafe {
         VmbFeatureStringGet(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             value_buffer.as_mut_ptr() as *mut c_char,
             value_buffer.len() as u32,
-            std::ptr::null_mut(),       // Change to sizeFilled pointer if desired
+            std::ptr::null_mut(), // Change to sizeFilled pointer if desired
         )
     })?;
 
-    let value = string_from_raw(value_buffer.as_ptr() as *const c_char).map_err(|_| VmbError::InternalFault)?;
+    let value = string_from_raw(value_buffer.as_ptr() as *const c_char)
+        .map_err(|_| VmbError::InternalFault)?;
     Ok(value)
 }
 
-pub fn feature_string_set(handle: &CameraHandle, name: &str, value: &str) -> VmbResult<()> {
-    let feature_name = raw_from_str(name);
-    let feature_value = raw_from_str(value);
+pub fn feature_string_set(handle: &impl VmbHandle, name: &str, value: &str) -> VmbResult<()> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
+    let feature_value = CString::new(value).map_err(|_| VmbError::BadParameter)?;
 
-    vmb_result(unsafe {
-        VmbFeatureStringSet(
-            handle.as_raw(),
-            feature_name,
-            feature_value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureStringSet(handle.as_raw(), feature_name.as_ptr(), feature_value.as_ptr()) })?;
 
     Ok(())
 }
 
-pub fn feature_string_max_length_query(handle: &CameraHandle, name: &str) -> VmbResult<u32> {
-    let feature_name = raw_from_str(name);
+pub fn feature_string_max_length_query(handle: &impl VmbHandle, name: &str) -> VmbResult<u32> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut max_length: u32 = 0 as VmbUint32_t;
 
     vmb_result(unsafe {
-        VmbFeatureStringMaxlengthQuery(
-            handle.as_raw(),
-            feature_name,
-            &mut max_length,
-        )
+        VmbFeatureStringMaxlengthQuery(handle.as_raw(), feature_name.as_ptr(), &mut max_length)
     })?;
 
     Ok(max_length)
 }
 
-pub fn feature_bool_get(handle: &CameraHandle, name: &str) -> VmbResult<bool> {
-    let feature_name = raw_from_str(name);
+pub fn feature_bool_get(handle: &impl VmbHandle, name: &str) -> VmbResult<bool> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value = false as VmbBool_t;
 
-    vmb_result( unsafe {
-        VmbFeatureBoolGet(
-            handle.as_raw(),
-            feature_name,
-            &mut value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureBoolGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
 
     Ok(value != 0)
 }
 
-pub fn feature_bool_set(handle: &CameraHandle, name: &str, value: bool) -> VmbResult<()> {
-    let feature_name = raw_from_str(name);
+pub fn feature_bool_set(handle: &impl VmbHandle, name: &str, value: bool) -> VmbResult<()> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let feature_value = to_vmb_bool(value);
 
-    vmb_result(unsafe {
-        VmbFeatureBoolSet(
-            handle.as_raw(),
-            feature_name,
-            feature_value,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureBoolSet(handle.as_raw(), feature_name.as_ptr(), feature_value) })?;
 
     Ok(())
 }
 
 //  ---------------------------------------------------------------
 //  Command Feature Access
-//  --------------------------------------------------------------- 
+//  ---------------------------------------------------------------
 
-pub fn feature_command_run(handle: &CameraHandle, name: &str) -> VmbResult<()> {
-    let feature_name = raw_from_str(name);
+pub fn feature_command_run(handle: &impl VmbHandle, name: &str) -> VmbResult<()> {
+    // raw strings passed here must be null terminated so that we can convert them into C strings!
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?; //creating a CString, documentation here: https://doc.rust-lang.org/beta/std/ffi/struct.CString.html  
 
-    println!("feature_command_run {:?}", handle);
+    // println!("feature_command_run {:?}", handle);
     println!("handle as raw {:?}", handle.as_raw());
 
-    vmb_result(unsafe {
-        VmbFeatureCommandRun(
-            handle.as_raw(),
-            feature_name,
-        )
-    })?;
+    vmb_result(unsafe { VmbFeatureCommandRun(handle.as_raw(), feature_name.as_ptr()) })?; //CString implements as_ptr thru the Deref trait to get a *const c_char to extern functions which expect nul-temrinated string. NOTE that as_ptr returns a READ ONLY pointer!!!! UB if C code writes to it. For our purposes, all C strings can be read only (bcuz they r just flags to the API)
+   
 
     Ok(())
 }
 
-pub fn feature_command_is_done(handle: &CameraHandle, name: &str) -> VmbResult<bool> {
-    let feature_name = raw_from_str(name);
+pub fn feature_command_is_done(handle: &impl VmbHandle, name: &str) -> VmbResult<bool> {
+    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut is_done: VmbBool_t = 0;
 
     vmb_result(unsafe {
         VmbFeatureCommandIsDone(
             handle.as_raw(),
-            feature_name,
+            feature_name.as_ptr(),
             &mut is_done as *mut VmbBool_t,
         )
     })?;
     Ok(is_done != 0)
 }
-
 
 // ---------------------------------------------------------------
 // Image Preparation and Acquisition
@@ -1159,21 +1140,15 @@ pub fn frame_from_buffer(buffer: &mut [u8]) -> Frame {
     frame
 }
 
-
-pub fn payload_size_get(handle: &CameraHandle) -> VmbResult<u32> {
+pub fn payload_size_get(handle: &impl VmbHandle) -> VmbResult<u32> {
     let mut payload_size: u32 = 0 as VmbUint32_t;
 
-    vmb_result(unsafe {
-        VmbPayloadSizeGet(
-            handle.as_raw(),
-            &mut payload_size,
-        )
-    })?;
+    vmb_result(unsafe { VmbPayloadSizeGet(handle.as_raw(), &mut payload_size) })?;
 
     Ok(payload_size)
 }
 
-pub fn frame_announce(handle: &CameraHandle, frame: &Frame) -> VmbResult<()> {
+pub fn frame_announce(handle: &impl VmbHandle, frame: &Frame) -> VmbResult<()> {
     vmb_result(unsafe {
         VmbFrameAnnounce(
             handle.as_raw(),
@@ -1185,56 +1160,41 @@ pub fn frame_announce(handle: &CameraHandle, frame: &Frame) -> VmbResult<()> {
     Ok(())
 }
 
-pub fn frame_revoke(handle: &CameraHandle, frame: &Frame) -> VmbResult<()> {
-    vmb_result(unsafe {
-        VmbFrameRevoke(
-            handle.as_raw(),
-            frame as *const Frame,
-        )
-    })?;
+pub fn frame_revoke(handle: &impl VmbHandle, frame: &Frame) -> VmbResult<()> {
+    vmb_result(unsafe { VmbFrameRevoke(handle.as_raw(), frame as *const Frame) })?;
 
     Ok(())
 }
 
-pub fn frame_revoke_all(handle: &CameraHandle) -> VmbResult<()> {
+pub fn frame_revoke_all(handle: &impl VmbHandle) -> VmbResult<()> {
     vmb_result(unsafe { VmbFrameRevokeAll(handle.as_raw()) })?;
 
     Ok(())
 }
 
-pub fn capture_start(handle: &CameraHandle) -> VmbResult<()> {
-    vmb_result(unsafe {
-        VmbCaptureStart(
-            handle.as_raw()
-        )
-    })?;
+pub fn capture_start(handle: &impl VmbHandle) -> VmbResult<()> {
+    vmb_result(unsafe { VmbCaptureStart(handle.as_raw()) })?;
 
     Ok(())
 }
 
-pub fn capture_end(handle: &CameraHandle) -> VmbResult<()> {
-    vmb_result(unsafe {
-        VmbCaptureEnd(
-            handle.as_raw()
-        )
-    })?;
-    
-    Ok(())
-}
-
-pub fn capture_frame_queue(handle: &CameraHandle, frame: &Frame, callback: VmbFrameCallback) -> VmbResult<()> {
-    vmb_result(unsafe {
-        VmbCaptureFrameQueue(
-            handle.as_raw(),
-            frame as *const Frame,
-            callback,
-        )
-    })?;
+pub fn capture_end(handle: &impl VmbHandle) -> VmbResult<()> {
+    vmb_result(unsafe { VmbCaptureEnd(handle.as_raw()) })?;
 
     Ok(())
 }
 
-pub fn capture_frame_wait(handle: &CameraHandle, frame: &Frame, timeout: u32) -> VmbResult<()>{
+pub fn capture_frame_queue(
+    handle: &impl VmbHandle,
+    frame: &Frame,
+    callback: VmbFrameCallback,
+) -> VmbResult<()> {
+    vmb_result(unsafe { VmbCaptureFrameQueue(handle.as_raw(), frame as *const Frame, callback) })?;
+
+    Ok(())
+}
+
+pub fn capture_frame_wait(handle: &impl VmbHandle, frame: &Frame, timeout: u32) -> VmbResult<()> {
     vmb_result(unsafe {
         VmbCaptureFrameWait(
             handle.as_raw(),
@@ -1246,11 +1206,8 @@ pub fn capture_frame_wait(handle: &CameraHandle, frame: &Frame, timeout: u32) ->
     Ok(())
 }
 
-pub fn capture_queue_flush(handle: &CameraHandle) -> VmbResult<()> {
-    vmb_result(unsafe {
-        VmbCaptureQueueFlush(handle.as_raw())
-
-    })?;
+pub fn capture_queue_flush(handle: &impl VmbHandle) -> VmbResult<()> {
+    vmb_result(unsafe { VmbCaptureQueueFlush(handle.as_raw()) })?;
 
     Ok(())
 }
@@ -1275,26 +1232,28 @@ pub fn capture_queue_flush(handle: &CameraHandle) -> VmbResult<()> {
 
 pub type PersistSettings = vmbffi::VmbFeaturePersistSettings_t;
 
-
-pub fn camera_settings_save(handle: &CameraHandle, filepath: &str, settings: *mut PersistSettings) -> VmbResult<()> {
+pub fn camera_settings_save(
+    handle: &impl VmbHandle,
+    filepath: &str,
+    settings: *mut PersistSettings,
+) -> VmbResult<()> {
     // TODO:    determine if this is how filepath is to be calculated
     //          determine how to calculate size_of_settings in bytes for C instead of rust
-    let filepath = raw_from_str(filepath);
+    let filepath = CString::new(filepath).map_err(|_| VmbError::BadParameter)?;
     let size_of_settings: u32 = 0;
 
     vmb_result(unsafe {
-        VmbSettingsSave(
-            handle.as_raw(),
-            filepath,
-            settings,
-            size_of_settings,
-        )
+        VmbSettingsSave(handle.as_raw(), filepath.as_ptr(), settings, size_of_settings)
     })?;
 
     Ok(())
 }
 
-pub fn camera_settings_load(handle: &CameraHandle, filepath: &str, settings: &PersistSettings) -> VmbResult<()> {
+pub fn camera_settings_load(
+    handle: &impl VmbHandle,
+    filepath: &str,
+    settings: &PersistSettings,
+) -> VmbResult<()> {
     let filepath = CString::new(filepath).map_err(|_| VmbError::BadParameter)?;
     let size_of_settings = mem::size_of::<PersistSettings>() as VmbUint32_t;
 
@@ -1303,10 +1262,9 @@ pub fn camera_settings_load(handle: &CameraHandle, filepath: &str, settings: &Pe
             handle.as_raw(),
             filepath.as_ptr(),
             settings as *const PersistSettings,
-            size_of_settings
+            size_of_settings,
         )
     })?;
 
     Ok(())
 }
-
