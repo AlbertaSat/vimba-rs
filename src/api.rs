@@ -5,6 +5,7 @@ use std::{
     ptr,
 };
 use strum::FromRepr;
+use log::info;
 
 #[derive(Debug, Copy, Clone)]
 pub struct VmbVersion {
@@ -364,9 +365,18 @@ impl AccessFlags {
 pub fn cameras_list() -> VmbResult<Vec<CameraInfo>> {
     let mut found = 0 as VmbUint32_t;
     let info_size = mem::size_of::<VmbCameraInfo_t>() as VmbUint32_t;
-    println!("calling VmbCamerasList with null ptr to get number of cameras found");
-    vmb_result(unsafe { VmbCamerasList(ptr::null_mut(), 0 as u32, &mut found, info_size) })?;
-    println!("VmbCamerasList found {} camera(s)", found);
+    
+    info!("calling VmbCamerasList with null ptr to get number of cameras found");
+    vmb_result(unsafe { 
+        VmbCamerasList(
+            ptr::null_mut(), 
+            0 as u32, 
+            &mut found, 
+            info_size
+        ) 
+    })?;
+
+    info!("VmbCamerasList found {} camera(s)", found);
     if found == 0 {
         return Ok(Vec::new()); //if no camera found, return an empty vector 
     }
@@ -382,7 +392,7 @@ pub fn cameras_list() -> VmbResult<Vec<CameraInfo>> {
             info_size,
         )
     })?;
-    println!("filled {} camera record(s)", found);
+    info!("filled {} camera record(s)", found);
 
     cameras_raw
         .iter()
@@ -403,56 +413,56 @@ pub fn camera_info_query_by_handle(handle: &impl VmbHandle) -> VmbResult<CameraI
 
 fn convert_camera_info_safe(camera: mem::MaybeUninit<VmbCameraInfo_t>) -> VmbResult<CameraInfo> {
     let camera = unsafe { camera.assume_init() };
-    println!("Debugging convert_camera_info_safe");
+    info!("Debugging convert_camera_info_safe");
 
     println!(
-        "cameraIdString          = {:?}",
+        "\tcameraIdString\t\t\t= {:?}",
         string_from_raw(camera.cameraIdString).map_err(|_| VmbError::InternalFault)
     );
     println!(
-        "cameraIdExtended = {:?}",
+        "\tcameraIdExtended\t\t= {:?}",
         string_from_raw(camera.cameraIdExtended).map_err(|_| VmbError::InternalFault)
     );
     println!(
-        "cameraName        = {:?}",
+        "\tcameraName\t\t\t= {:?}",
         string_from_raw(camera.cameraName).map_err(|_| VmbError::InternalFault)
     );
     println!(
-        "modelName      = {:?}",
+        "\tmodelName\t\t\t= {:?}",
         string_from_raw(camera.modelName).map_err(|_| VmbError::InternalFault)
     );
     println!(
-        "serialString      = {:?}",
+        "\tserialString\t\t\t= {:?}",
         string_from_raw(camera.serialString).map_err(|_| VmbError::InternalFault)
     );
-    println!("transportLayerHandle = {:?}", unsafe {
+    println!("\ttransportLayerHandle\t\t= {:?}", unsafe {
         TransportLayerHandle::from_raw(camera.transportLayerHandle)
     });
-    println!("interfaceHandle = {:?}", unsafe {
+    println!("\tinterfaceHandle\t\t\t= {:?}", unsafe {
         InterfaceHandle::from_raw(camera.interfaceHandle)
     });
-    println!("localDeviceHandle = {:?}", unsafe {
+    println!("\tlocalDeviceHandle\t\t= {:?}", unsafe {
         LocalDeviceHandle::from_raw(camera.localDeviceHandle)
     });
-    println!("streamHandles = {:?}", unsafe {
+    println!("\tstreamHandles\t\t\t= {:?}", unsafe {
         StreamHandles::from_raw(camera.streamHandles)
     });
-    println!("streamCount = {:?}", camera.streamCount);
-    println!("permittedAccess = {:?}", camera.permittedAccess);
+    println!("\tstreamCount\t\t\t= {:?}", camera.streamCount);
+    println!("\tpermittedAccess\t\t\t= {:?}", camera.permittedAccess);
     println!(
-        "AccessFlags.access_full() = {:?}",
+        "\tAccessFlags.access_full()\t\t\t= {:?}",
         AccessFlags(camera.permittedAccess).access_full()
     );
     println!(
-        "AccessFlags.access_exclusive() = {:?}",
+        "\tAccessFlags.access_exclusive()\t\t\t= {:?}",
         AccessFlags(camera.permittedAccess).access_exclusive()
     );
     println!(
-        "AccessFlags.access_read() = {:?}",
+        "\tAccessFlags.access_read()\t\t\t= {:?}",
         AccessFlags(camera.permittedAccess).access_read()
     );
     println!(
-        "AccessFlags.access_unknown() = {:?}",
+        "\tAccessFlags.access_unknown()\t\t\t= {:?}",
         AccessFlags(camera.permittedAccess).access_unknown()
     );
 
@@ -488,8 +498,11 @@ pub fn camera_info_query(camera_id: &str) -> VmbResult<CameraInfo> {
 }
 
 pub fn camera_open(id: &str, mode: AccessMode) -> VmbResult<CameraHandle> {
+    info!("Opening Camera: {}", id);
+    
     let mut camera_handle_raw: MaybeUninit<VmbHandle_t> = MaybeUninit::uninit();
     let id = CString::new(id).map_err(|_| VmbError::BadParameter)?;
+
 
     vmb_result(unsafe {
         VmbCameraOpen(
