@@ -216,7 +216,12 @@ pub fn transport_layers_list() -> VmbResult<Vec<TransportLayerInfo>> {
     let tl_info_size = mem::size_of::<VmbTransportLayerInfo_t>() as VmbUint32_t;
 
     vmb_result(unsafe {
-        VmbTransportLayersList(ptr::null_mut(), 0 as u32, &mut found, tl_info_size)
+        VmbTransportLayersList(
+            ptr::null_mut(), 
+            0 as u32, 
+            &mut found, 
+            tl_info_size
+        )
     })?;
 
     if found == 0 {
@@ -277,7 +282,14 @@ pub fn interfaces_list() -> VmbResult<Vec<InterfaceInfo>> {
     let mut found = 0 as VmbUint32_t;
     let info_size = mem::size_of::<VmbInterfaceInfo_t>() as VmbUint32_t;
 
-    vmb_result(unsafe { VmbInterfacesList(ptr::null_mut(), 0 as u32, &mut found, info_size) })?;
+    vmb_result(unsafe { 
+        VmbInterfacesList(
+            ptr::null_mut(), 
+            0 as u32, 
+            &mut found, 
+            info_size
+        ) 
+    })?;
 
     if found == 0 {
         return Ok(Vec::new());
@@ -405,7 +417,11 @@ pub fn camera_info_query_by_handle(handle: &impl VmbHandle) -> VmbResult<CameraI
     let info_size = mem::size_of::<VmbCameraInfo_t>() as VmbUint32_t;
 
     vmb_result(unsafe {
-        VmbCameraInfoQueryByHandle(handle.as_raw(), camera_info_raw.as_mut_ptr(), info_size)
+        VmbCameraInfoQueryByHandle(
+            handle.as_raw(), 
+            camera_info_raw.as_mut_ptr(), 
+            info_size
+        )
     })?;
 
     convert_camera_info_safe(camera_info_raw)
@@ -491,7 +507,11 @@ pub fn camera_info_query(camera_id: &str) -> VmbResult<CameraInfo> {
     let camera_id = CString::new(camera_id).map_err(|_| VmbError::BadParameter)?;
 
     vmb_result(unsafe {
-        VmbCameraInfoQuery(camera_id.as_ptr(), camera_info_raw.as_mut_ptr(), info_size)
+        VmbCameraInfoQuery(
+            camera_id.as_ptr(), 
+            camera_info_raw.as_mut_ptr(), 
+            info_size
+        )
     })?;
 
     convert_camera_info_safe(camera_info_raw)
@@ -770,7 +790,13 @@ pub fn feature_int_get(handle: &impl VmbHandle, name: &str) -> VmbResult<i64> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value = 0 as VmbInt64_t;
 
-    vmb_result(unsafe { VmbFeatureIntGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
+    vmb_result(unsafe { 
+        VmbFeatureIntGet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            &mut value
+        ) 
+    })?;
 
     Ok(value)
 }
@@ -779,7 +805,13 @@ pub fn feature_int_set(handle: &impl VmbHandle, name: &str, value: i64) -> VmbRe
     let value = value as VmbInt64_t;
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
 
-    vmb_result(unsafe { VmbFeatureIntSet(handle.as_raw(), feature_name.as_ptr(), value) })?;
+    vmb_result(unsafe { 
+        VmbFeatureIntSet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            value
+        ) 
+    })?;
 
     Ok(())
 }
@@ -790,7 +822,12 @@ pub fn feature_int_range_query(handle: &impl VmbHandle, name: &str) -> VmbResult
     let mut max: i64 = -1 as VmbInt64_t;
 
     vmb_result(unsafe {
-        VmbFeatureIntRangeQuery(handle.as_raw(), feature_name.as_ptr(), &mut min, &mut max)
+        VmbFeatureIntRangeQuery(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            &mut min, 
+            &mut max
+        )
     })?;
 
     Ok([min, max])
@@ -804,7 +841,13 @@ pub fn feature_int_increment_query(
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value = value as VmbInt64_t;
 
-    vmb_result(unsafe { VmbFeatureIntIncrementQuery(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
+    vmb_result(unsafe { 
+        VmbFeatureIntIncrementQuery(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            &mut value
+        ) 
+    })?;
 
     Ok(value)
 }
@@ -852,7 +895,13 @@ pub fn feature_float_get(handle: &impl VmbHandle, name: &str) -> VmbResult<f64> 
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value: f64 = 0.0;
 
-    vmb_result(unsafe { VmbFeatureFloatGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
+    vmb_result(unsafe { 
+        VmbFeatureFloatGet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            &mut value
+        ) 
+    })?;
 
     Ok(value)
 }
@@ -860,7 +909,13 @@ pub fn feature_float_get(handle: &impl VmbHandle, name: &str) -> VmbResult<f64> 
 pub fn feature_float_set(handle: &impl VmbHandle, name: &str, value: f64) -> VmbResult<()> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
 
-    vmb_result(unsafe { VmbFeatureFloatSet(handle.as_raw(), feature_name.as_ptr(), value) })?;
+    vmb_result(unsafe { 
+        VmbFeatureFloatSet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            value
+        ) 
+    })?;
 
     Ok(())
 }
@@ -871,7 +926,12 @@ pub fn feature_float_range_query(handle: &impl VmbHandle, name: &str) -> VmbResu
     let mut max: f64 = -1.0;
 
     vmb_result(unsafe {
-        VmbFeatureFloatRangeQuery(handle.as_raw(), feature_name.as_ptr(), &mut min, &mut max)
+        VmbFeatureFloatRangeQuery(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            &mut min, 
+            &mut max
+        )
     })?;
 
     Ok([min, max])
@@ -898,7 +958,13 @@ pub fn feature_enum_get(handle: &impl VmbHandle, name: &str) -> VmbResult<String
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value: *const std::os::raw::c_char = std::ptr::null();
 
-    vmb_result(unsafe { VmbFeatureEnumGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
+    vmb_result(unsafe { 
+        VmbFeatureEnumGet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            &mut value
+        ) 
+    })?;
 
     if value.is_null() {
         return Err(VmbError::NoData);
@@ -912,7 +978,13 @@ pub fn feature_enum_set(handle: &impl VmbHandle, name: &str, value: &str) -> Vmb
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let feature_value = CString::new(value).map_err(|_| VmbError::BadParameter)?;
 
-    vmb_result(unsafe { VmbFeatureEnumSet(handle.as_raw(), feature_name.as_ptr(), feature_value.as_ptr()) })?;
+    vmb_result(unsafe { 
+        VmbFeatureEnumSet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            feature_value.as_ptr()
+        ) 
+    })?;
 
     Ok(())
 }
@@ -990,7 +1062,12 @@ pub fn feature_enum_as_int(handle: &impl VmbHandle, name: &str, value: &str) -> 
     let mut int_value: i64 = -1 as VmbInt64_t;
 
     vmb_result(unsafe {
-        VmbFeatureEnumAsInt(handle.as_raw(), feature_name.as_ptr(), feature_value.as_ptr(), &mut int_value)
+        VmbFeatureEnumAsInt(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            feature_value.as_ptr(), 
+            &mut int_value
+        )
     })?;
 
     Ok(int_value)
@@ -1075,7 +1152,13 @@ pub fn feature_string_set(handle: &impl VmbHandle, name: &str, value: &str) -> V
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let feature_value = CString::new(value).map_err(|_| VmbError::BadParameter)?;
 
-    vmb_result(unsafe { VmbFeatureStringSet(handle.as_raw(), feature_name.as_ptr(), feature_value.as_ptr()) })?;
+    vmb_result(unsafe { 
+        VmbFeatureStringSet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            feature_value.as_ptr()
+        ) 
+    })?;
 
     Ok(())
 }
@@ -1085,7 +1168,11 @@ pub fn feature_string_max_length_query(handle: &impl VmbHandle, name: &str) -> V
     let mut max_length: u32 = 0 as VmbUint32_t;
 
     vmb_result(unsafe {
-        VmbFeatureStringMaxlengthQuery(handle.as_raw(), feature_name.as_ptr(), &mut max_length)
+        VmbFeatureStringMaxlengthQuery(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            &mut max_length
+        )
     })?;
 
     Ok(max_length)
@@ -1095,7 +1182,13 @@ pub fn feature_bool_get(handle: &impl VmbHandle, name: &str) -> VmbResult<bool> 
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value = false as VmbBool_t;
 
-    vmb_result(unsafe { VmbFeatureBoolGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
+    vmb_result(unsafe { 
+        VmbFeatureBoolGet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            &mut value
+        ) 
+    })?;
 
     Ok(value != 0)
 }
@@ -1104,7 +1197,13 @@ pub fn feature_bool_set(handle: &impl VmbHandle, name: &str, value: bool) -> Vmb
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let feature_value = to_vmb_bool(value);
 
-    vmb_result(unsafe { VmbFeatureBoolSet(handle.as_raw(), feature_name.as_ptr(), feature_value) })?;
+    vmb_result(unsafe { 
+        VmbFeatureBoolSet(
+            handle.as_raw(), 
+            feature_name.as_ptr(), 
+            feature_value
+        ) 
+    })?;
 
     Ok(())
 }
@@ -1120,7 +1219,12 @@ pub fn feature_command_run(handle: &impl VmbHandle, name: &str) -> VmbResult<()>
     // println!("feature_command_run {:?}", handle);
     println!("handle as raw {:?}", handle.as_raw());
 
-    vmb_result(unsafe { VmbFeatureCommandRun(handle.as_raw(), feature_name.as_ptr()) })?; //CString implements as_ptr thru the Deref trait to get a *const c_char to extern functions which expect nul-temrinated string. NOTE that as_ptr returns a READ ONLY pointer!!!! UB if C code writes to it. For our purposes, all C strings can be read only (bcuz they r just flags to the API)
+    vmb_result(unsafe { 
+        VmbFeatureCommandRun(
+            handle.as_raw(), 
+            feature_name.as_ptr()
+        ) 
+    })?; //CString implements as_ptr thru the Deref trait to get a *const c_char to extern functions which expect nul-temrinated string. NOTE that as_ptr returns a READ ONLY pointer!!!! UB if C code writes to it. For our purposes, all C strings can be read only (bcuz they r just flags to the API)
    
 
     Ok(())
@@ -1156,7 +1260,12 @@ pub fn frame_from_buffer(buffer: &mut [u8]) -> Frame {
 pub fn payload_size_get(handle: &impl VmbHandle) -> VmbResult<u32> {
     let mut payload_size: u32 = 0 as VmbUint32_t;
 
-    vmb_result(unsafe { VmbPayloadSizeGet(handle.as_raw(), &mut payload_size) })?;
+    vmb_result(unsafe { 
+        VmbPayloadSizeGet(
+            handle.as_raw(), 
+            &mut payload_size
+        ) 
+    })?;
 
     Ok(payload_size)
 }
@@ -1256,7 +1365,12 @@ pub fn camera_settings_save(
     let size_of_settings: u32 = 0;
 
     vmb_result(unsafe {
-        VmbSettingsSave(handle.as_raw(), filepath.as_ptr(), settings, size_of_settings)
+        VmbSettingsSave(
+            handle.as_raw(), 
+            filepath.as_ptr(), 
+            settings, 
+            size_of_settings
+        )
     })?;
 
     Ok(())
