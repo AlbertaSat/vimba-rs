@@ -4,6 +4,7 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo:rustc-link-search=/opt/VimbaX_2025-3/api/lib");
     println!("cargo:rustc-link-lib=VmbC");
+    println!("cargo:rustc-link-lib=VmbImageTransform");
     unsafe {
         std::env::set_var(
             "BINDGEN_EXTRA_CLANG_ARGS",

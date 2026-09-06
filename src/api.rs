@@ -1,6 +1,6 @@
 use super::{error::*, ffi as vmbffi, ffi::*, utils::*};
 use std::{
-    ffi::{CString, c_char, c_double},
+    ffi::{CString, c_char, c_double, c_void},
     mem::{self, MaybeUninit},
     ptr,
 };
@@ -1332,6 +1332,40 @@ pub fn capture_queue_flush(handle: &impl VmbHandle) -> VmbResult<()> {
     vmb_result(unsafe { VmbCaptureQueueFlush(handle.as_raw()) })?;
 
     Ok(())
+}
+
+// ---------------------------------------------------------------
+// Image Transform (VmbImageTransform library) — debayering / pixel format conversion
+// ---------------------------------------------------------------
+
+/// Debayer/convert a raw sensor buffer (in `pixel_format`) into flat, row-major RGB8
+/// bytes (3 bytes per pixel) via the VmbImageTransform library.
+pub fn convert_to_rgb8(
+    pixel_format: VmbPixelFormat_t,
+    width: u32,
+    height: u32,
+    buffer: &[u8],
+) -> VmbResult<Vec<u8>> {
+    let mut source_image: VmbImage = unsafe { mem::zeroed() };
+    source_image.Size = mem::size_of::<VmbImage>() as u32;
+    vmb_result(unsafe {
+        VmbSetImageInfoFromPixelFormat(pixel_format, width, height, &mut source_image)
+    })?;
+    source_image.Data = buffer.as_ptr() as *mut c_void;
+
+    let mut dest_image: VmbImage = unsafe { mem::zeroed() };
+    dest_image.Size = mem::size_of::<VmbImage>() as u32;
+    let rgb8_format = CString::new("RGB8").map_err(|_| VmbError::BadParameter)?;
+    vmb_result(unsafe {
+        VmbSetImageInfoFromString(rgb8_format.as_ptr(), width, height, &mut dest_image)
+    })?;
+
+    let mut rgb_buffer = vec![0u8; width as usize * height as usize * 3];
+    dest_image.Data = rgb_buffer.as_mut_ptr() as *mut c_void;
+
+    vmb_result(unsafe { VmbImageTransform(&source_image, &mut dest_image, ptr::null(), 0) })?;
+
+    Ok(rgb_buffer)
 }
 
 // ---------------------------------------------------------------
