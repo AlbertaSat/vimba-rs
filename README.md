@@ -8,7 +8,7 @@ This is currently a work in progress.
 
 1. Install the Vimba SDK through the website. It should be listed near the bottom for Linux64. As of June 23 2026, it should be named something similar to 'VimbaX_Setup-2026-1-Linux64.tar.gz': https://www.alliedvision.com/en/support/software-downloads/vimba-x-sdk/vimba-x 
 
-2. Unzip the installation tarball into somewhere nice and safe and cd into that directory. cd into the cti directory of the installation: `cd VimbaX_2026-1/cti/` (or whichever path you need to get into the cti dir)
+2. Unzip the installation tarball into somewhere nice and safe and cd into that directory. cd into the cti directory of the installation: `cd /opt/VimbaX_2025-3/cti/` (or whichever path you need to get into the cti dir)
 
 3. Run the following bash scripts with current working directory in the cti dir: `sudo ./Install_GenTL_Path.sh; . Set_GenTL_Path.sh`
 
