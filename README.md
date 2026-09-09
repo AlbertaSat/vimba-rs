@@ -2,7 +2,6 @@
 
 This repository contains safe wrapper functions over raw bindings generated from the Vimba X 2025-3 VmbC API.
 
-This is currently a work in progress.
 
 ## Setup
 
@@ -27,7 +26,7 @@ Setting the GENICAM_GENTL64_PATH to /opt/VimbaX_2025-3/cti for this shell only.
 
 4. Clone the repository AlbertaSat/vimba_rs
 
-5. Find the path to api/lib inside your Vimba installation, and export LD_LIBRARY_PATH as the absolute path to that location: `export LD_LIBRARY_PATH=/opt/VimbaX_2025-3/api/lib`
+5. Find the path to api/lib inside your Vimba installation, and export LD_LIBRARY_PATH as the absolute path to that location: `export LD_LIBRARY_PATH=/opt/VimbaX_2025-3/api/lib:/opt/VimbaX_2025-3/bin`
 
 6. To compile vimba_rs, cd into vimba_rs and run `cargo build`
 

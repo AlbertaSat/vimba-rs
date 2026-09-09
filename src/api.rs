@@ -429,7 +429,7 @@ pub fn camera_info_query_by_handle(handle: &impl VmbHandle) -> VmbResult<CameraI
 
 fn convert_camera_info_safe(camera: mem::MaybeUninit<VmbCameraInfo_t>) -> VmbResult<CameraInfo> {
     let camera = unsafe { camera.assume_init() };
-    info!("Debugging convert_camera_info_safe");
+    info!("VimbaCamera:convert_camera_info_safe: Debugging convert_camera_info_safe");
 
     println!(
         "\tcameraIdString\t\t\t= {:?}",
