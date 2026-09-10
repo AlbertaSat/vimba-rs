@@ -1,8 +1,8 @@
 pub mod api;
-mod utils;
 mod error;
-pub use error::VmbResult;
+mod utils;
 pub use error::VmbError;
+pub use error::VmbResult;
 
 mod ffi {
     #![allow(non_upper_case_globals)]

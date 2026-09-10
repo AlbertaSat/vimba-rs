@@ -1,4 +1,4 @@
-use vimba_rs::api::{startup, transport_layers_list,  shutdown};
+use vimba_rs::api::{shutdown, startup, transport_layers_list};
 
 fn main() {
     match startup(Some("/opt/VimbaX_2025-3/cti/VimbaCameraSimulatorTL.cti")) {

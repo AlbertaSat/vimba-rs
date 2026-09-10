@@ -1,6 +1,6 @@
-use thiserror::Error;
-use strum::FromRepr;
 use crate::ffi::*;
+use strum::FromRepr;
+use thiserror::Error;
 
 pub type VmbResult<T> = Result<T, VmbError>;
 
