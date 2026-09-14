@@ -1,7 +1,7 @@
-use vimba_rs::api::{interfaces_list, shutdown, startup};
+use vimba_rs::api::{shutdown, startup, transport_layers_list};
 
 fn main() {
-    match startup() {
+    match startup(Some("/opt/VimbaX_2025-3/cti/VimbaCameraSimulatorTL.cti")) {
         Ok(()) => {
             println!("Successfully started api")
         }
@@ -10,14 +10,12 @@ fn main() {
         }
     }
 
-    // Vimba_5_0 has no VmbTransportLayersList; interfaces are the closest
-    // enumerable equivalent (e.g. a GigE adapter or the USB bus).
-    match interfaces_list() {
+    match transport_layers_list() {
         Ok(list) => {
-            println!("Found {} interface(s): {:?}", list.len(), list);
+            println!("Found {} transport layer(s): {:?}", list.len(), list);
         }
         Err(e) => {
-            eprintln!("Failed to get interface list: {e}");
+            eprintln!("Failed to get transport layer list: {e}");
         }
     }
 
