@@ -16,21 +16,6 @@ pub struct VmbVersion {
 
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-pub struct TransportLayerHandle {
-    ptr: VmbHandle_t,
-}
-
-impl TransportLayerHandle {
-    pub unsafe fn from_raw(ptr: VmbHandle_t) -> Self {
-        Self { ptr }
-    }
-    pub fn as_raw(&self) -> VmbHandle_t {
-        self.ptr
-    }
-}
-
-#[repr(transparent)]
-#[derive(Debug, Clone)]
 pub struct InterfaceHandle {
     ptr: VmbHandle_t,
 }
@@ -40,36 +25,6 @@ impl InterfaceHandle {
         Self { ptr }
     }
     pub fn as_raw(&self) -> VmbHandle_t {
-        self.ptr
-    }
-}
-
-#[repr(transparent)]
-#[derive(Debug, Clone)]
-pub struct LocalDeviceHandle {
-    ptr: VmbHandle_t,
-}
-
-impl LocalDeviceHandle {
-    pub unsafe fn from_raw(ptr: VmbHandle_t) -> Self {
-        Self { ptr }
-    }
-    pub fn as_raw(&self) -> VmbHandle_t {
-        self.ptr
-    }
-}
-
-#[repr(transparent)]
-#[derive(Debug, Clone)]
-pub struct StreamHandles {
-    ptr: *const VmbHandle_t,
-}
-
-impl StreamHandles {
-    pub unsafe fn from_raw(ptr: *const VmbHandle_t) -> Self {
-        Self { ptr }
-    }
-    pub fn as_raw(&self) -> *const VmbHandle_t {
         self.ptr
     }
 }
@@ -93,19 +48,7 @@ pub trait VmbHandle {
     fn as_raw(&self) -> VmbHandle_t;
 }
 
-impl VmbHandle for TransportLayerHandle {
-    fn as_raw(&self) -> VmbHandle_t {
-        self.ptr
-    }
-}
-
 impl VmbHandle for InterfaceHandle {
-    fn as_raw(&self) -> VmbHandle_t {
-        self.ptr
-    }
-}
-
-impl VmbHandle for LocalDeviceHandle {
     fn as_raw(&self) -> VmbHandle_t {
         self.ptr
     }
@@ -152,24 +95,16 @@ pub fn vmb_version_query() -> VmbResult<VmbVersion> {
 #[derive(Debug, Clone)]
 pub struct CameraInfo {
     pub id: String,
-    pub extended_id: String,
     pub camera_name: String,
     pub model_name: String,
     pub serial_number: String,
-    pub transport_layer_handle: TransportLayerHandle,
-    pub interface_handle: InterfaceHandle,
-    pub local_device_handle: LocalDeviceHandle,
-    pub stream_handles: StreamHandles,
-    pub stream_count: u32,
+    pub interface_id: String,
     pub access: u32, //note from Olivia: access was previously AccessMode type but this broke because camera.permittedAccess is a bitfield wise number
     pub permitted_access: AccessFlags, //use camera_info.permitted_access.access_full() -> bool
 }
 
-pub fn startup(path_config: Option<&str>) -> VmbResult<()> {
-    let path = path_config.unwrap_or("/opt/VimbaX-2025-3/cti/VimbaUSBTL.cti");
-
-    let path = CString::new(path).map_err(|_| VmbError::BadParameter)?;
-    vmb_result(unsafe { VmbStartup(path.as_ptr()) })?;
+pub fn startup() -> VmbResult<()> {
+    vmb_result(unsafe { VmbStartup() })?;
     Ok(())
 }
 
@@ -180,97 +115,27 @@ pub fn shutdown() {
 }
 
 // ---------------------------------------------------------------
-// Transportaion Layer Enumeration & Information
+// Interface Enumeration & Information
 // ---------------------------------------------------------------
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, FromRepr)]
-pub enum TransportLayerType {
-    Unknown = VmbTransportLayerType_VmbTransportLayerTypeUnknown,
-    GEV = VmbTransportLayerType_VmbTransportLayerTypeGEV,
-    CameraLink = VmbTransportLayerType_VmbTransportLayerTypeCL,
-    IIDC = VmbTransportLayerType_VmbTransportLayerTypeIIDC,
-    UVC = VmbTransportLayerType_VmbTransportLayerTypeUVC,
-    CXP = VmbTransportLayerType_VmbTransportLayerTypeCXP,
-    CameraLinkHS = VmbTransportLayerType_VmbTransportLayerTypeCLHS,
-    U3V = VmbTransportLayerType_VmbTransportLayerTypeU3V,
-    Ethernet = VmbTransportLayerType_VmbTransportLayerTypeEthernet,
-    PCI = VmbTransportLayerType_VmbTransportLayerTypePCI,
-    Custom = VmbTransportLayerType_VmbTransportLayerTypeCustom,
-    Mixed = VmbTransportLayerType_VmbTransportLayerTypeMixed,
+pub enum InterfaceType {
+    Unknown = VmbInterfaceType_VmbInterfaceUnknown,
+    Firewire = VmbInterfaceType_VmbInterfaceFirewire,
+    Ethernet = VmbInterfaceType_VmbInterfaceEthernet,
+    Usb = VmbInterfaceType_VmbInterfaceUsb,
+    CameraLink = VmbInterfaceType_VmbInterfaceCL,
+    CSI2 = VmbInterfaceType_VmbInterfaceCSI2,
 }
 
 #[derive(Debug, Clone)]
-pub struct TransportLayerInfo {
-    pub id: String,
-    pub name: String,
-    pub model_name: String,
-    pub vendor: String,
-    pub path: String,
-    pub tl_type: TransportLayerType,
-    pub handle: TransportLayerHandle,
-}
-
-pub fn transport_layers_list() -> VmbResult<Vec<TransportLayerInfo>> {
-    let mut found = 0 as VmbUint32_t;
-    let tl_info_size = mem::size_of::<VmbTransportLayerInfo_t>() as VmbUint32_t;
-
-    vmb_result(unsafe {
-        VmbTransportLayersList(ptr::null_mut(), 0 as u32, &mut found, tl_info_size)
-    })?;
-
-    if found == 0 {
-        return Ok(Vec::new());
-    }
-
-    let mut layers_raw: Vec<mem::MaybeUninit<VmbTransportLayerInfo_t>> =
-        vec![mem::MaybeUninit::uninit(); found as usize];
-
-    vmb_result(unsafe {
-        VmbTransportLayersList(
-            layers_raw.as_mut_ptr().cast(),
-            found,
-            &mut found,
-            tl_info_size,
-        )
-    })?;
-
-    fn convert_tl_info_safe(
-        layer: mem::MaybeUninit<VmbTransportLayerInfo_t>,
-    ) -> Result<TransportLayerInfo, VmbError> {
-        let layer = unsafe { layer.assume_init() };
-
-        Ok(TransportLayerInfo {
-            id: string_from_raw(layer.transportLayerIdString)
-                .map_err(|_| VmbError::InternalFault)?,
-            name: string_from_raw(layer.transportLayerName).map_err(|_| VmbError::InternalFault)?,
-            model_name: string_from_raw(layer.transportLayerModelName)
-                .map_err(|_| VmbError::InternalFault)?,
-            vendor: string_from_raw(layer.transportLayerVendor)
-                .map_err(|_| VmbError::InternalFault)?,
-            path: string_from_raw(layer.transportLayerPath).map_err(|_| VmbError::InternalFault)?,
-            tl_type: TransportLayerType::from_repr(layer.transportLayerType)
-                .ok_or(VmbError::InternalFault)?,
-            handle: unsafe { TransportLayerHandle::from_raw(layer.transportLayerHandle) },
-        })
-    }
-
-    layers_raw
-        .iter()
-        .map(|layer| convert_tl_info_safe(*layer))
-        .collect::<VmbResult<Vec<TransportLayerInfo>>>()
-}
-
-// ---------------------------------------------------------------
-// Interface Enumeration & Information
-// ---------------------------------------------------------------
-
 pub struct InterfaceInfo {
     pub id: String,
     pub name: String,
-    pub interface_handle: InterfaceHandle,
-    pub transport_layer_handle: TransportLayerHandle,
-    pub interface_type: TransportLayerType,
+    pub serial_number: String,
+    pub permitted_access: AccessFlags,
+    pub interface_type: InterfaceType,
 }
 
 pub fn interfaces_list() -> VmbResult<Vec<InterfaceInfo>> {
@@ -304,12 +169,11 @@ pub fn interfaces_list() -> VmbResult<Vec<InterfaceInfo>> {
             id: string_from_raw(interface.interfaceIdString)
                 .map_err(|_| VmbError::InternalFault)?,
             name: string_from_raw(interface.interfaceName).map_err(|_| VmbError::InternalFault)?,
-            interface_type: TransportLayerType::from_repr(interface.interfaceType)
+            serial_number: string_from_raw(interface.serialString)
+                .map_err(|_| VmbError::InternalFault)?,
+            permitted_access: AccessFlags(interface.permittedAccess),
+            interface_type: InterfaceType::from_repr(interface.interfaceType)
                 .ok_or(VmbError::InternalFault)?,
-            interface_handle: unsafe { InterfaceHandle::from_raw(interface.interfaceHandle) },
-            transport_layer_handle: unsafe {
-                TransportLayerHandle::from_raw(interface.transportLayerHandle)
-            },
         })
     }
 
@@ -332,8 +196,8 @@ pub enum AccessMode {
     None = VmbAccessModeType_VmbAccessModeNone, //0000
     Full = VmbAccessModeType_VmbAccessModeFull, //0001
     Read = VmbAccessModeType_VmbAccessModeRead, //0010
-    Unknown = VmbAccessModeType_VmbAccessModeUnknown, //0100
-    Exclusive = VmbAccessModeType_VmbAccessModeExclusive, //1000
+    Config = VmbAccessModeType_VmbAccessModeConfig, //0100
+    Lite = VmbAccessModeType_VmbAccessModeLite, //1000
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -349,12 +213,12 @@ impl AccessFlags {
         self.0 & VmbAccessModeType_VmbAccessModeRead != 0
     }
 
-    pub fn access_exclusive(self) -> bool {
-        self.0 & VmbAccessModeType_VmbAccessModeExclusive != 0
+    pub fn access_config(self) -> bool {
+        self.0 & VmbAccessModeType_VmbAccessModeConfig != 0
     }
 
-    pub fn access_unknown(self) -> bool {
-        self.0 & VmbAccessModeType_VmbAccessModeUnknown != 0
+    pub fn access_lite(self) -> bool {
+        self.0 & VmbAccessModeType_VmbAccessModeLite != 0
     }
 
     pub fn raw(self) -> u32 {
@@ -393,86 +257,16 @@ pub fn cameras_list() -> VmbResult<Vec<CameraInfo>> {
         .collect::<VmbResult<Vec<CameraInfo>>>()
 }
 
-pub fn camera_info_query_by_handle(handle: &impl VmbHandle) -> VmbResult<CameraInfo> {
-    let mut camera_info_raw: MaybeUninit<VmbCameraInfo_t> = MaybeUninit::uninit();
-    let info_size = mem::size_of::<VmbCameraInfo_t>() as VmbUint32_t;
-
-    vmb_result(unsafe {
-        VmbCameraInfoQueryByHandle(handle.as_raw(), camera_info_raw.as_mut_ptr(), info_size)
-    })?;
-
-    convert_camera_info_safe(camera_info_raw)
-}
-
 fn convert_camera_info_safe(camera: mem::MaybeUninit<VmbCameraInfo_t>) -> VmbResult<CameraInfo> {
     let camera = unsafe { camera.assume_init() };
-    info!("VimbaCamera:convert_camera_info_safe: Debugging convert_camera_info_safe");
-
-    println!(
-        "\tcameraIdString\t\t\t= {:?}",
-        string_from_raw(camera.cameraIdString).map_err(|_| VmbError::InternalFault)
-    );
-    println!(
-        "\tcameraIdExtended\t\t= {:?}",
-        string_from_raw(camera.cameraIdExtended).map_err(|_| VmbError::InternalFault)
-    );
-    println!(
-        "\tcameraName\t\t\t= {:?}",
-        string_from_raw(camera.cameraName).map_err(|_| VmbError::InternalFault)
-    );
-    println!(
-        "\tmodelName\t\t\t= {:?}",
-        string_from_raw(camera.modelName).map_err(|_| VmbError::InternalFault)
-    );
-    println!(
-        "\tserialString\t\t\t= {:?}",
-        string_from_raw(camera.serialString).map_err(|_| VmbError::InternalFault)
-    );
-    println!("\ttransportLayerHandle\t\t= {:?}", unsafe {
-        TransportLayerHandle::from_raw(camera.transportLayerHandle)
-    });
-    println!("\tinterfaceHandle\t\t\t= {:?}", unsafe {
-        InterfaceHandle::from_raw(camera.interfaceHandle)
-    });
-    println!("\tlocalDeviceHandle\t\t= {:?}", unsafe {
-        LocalDeviceHandle::from_raw(camera.localDeviceHandle)
-    });
-    println!("\tstreamHandles\t\t\t= {:?}", unsafe {
-        StreamHandles::from_raw(camera.streamHandles)
-    });
-    println!("\tstreamCount\t\t\t= {:?}", camera.streamCount);
-    println!("\tpermittedAccess\t\t\t= {:?}", camera.permittedAccess);
-    println!(
-        "\tAccessFlags.access_full()\t\t\t= {:?}",
-        AccessFlags(camera.permittedAccess).access_full()
-    );
-    println!(
-        "\tAccessFlags.access_exclusive()\t\t\t= {:?}",
-        AccessFlags(camera.permittedAccess).access_exclusive()
-    );
-    println!(
-        "\tAccessFlags.access_read()\t\t\t= {:?}",
-        AccessFlags(camera.permittedAccess).access_read()
-    );
-    println!(
-        "\tAccessFlags.access_unknown()\t\t\t= {:?}",
-        AccessFlags(camera.permittedAccess).access_unknown()
-    );
 
     Ok(CameraInfo {
         id: string_from_raw(camera.cameraIdString).map_err(|_| VmbError::InternalFault)?,
-        extended_id: string_from_raw(camera.cameraIdExtended)
-            .map_err(|_| VmbError::InternalFault)?,
         camera_name: string_from_raw(camera.cameraName).map_err(|_| VmbError::InternalFault)?,
         model_name: string_from_raw(camera.modelName).map_err(|_| VmbError::InternalFault)?,
         serial_number: string_from_raw(camera.serialString).map_err(|_| VmbError::InternalFault)?,
-        transport_layer_handle: unsafe {
-            TransportLayerHandle::from_raw(camera.transportLayerHandle)
-        },
-        interface_handle: unsafe { InterfaceHandle::from_raw(camera.interfaceHandle) },
-        local_device_handle: unsafe { LocalDeviceHandle::from_raw(camera.localDeviceHandle) },
-        stream_handles: unsafe { StreamHandles::from_raw(camera.streamHandles) },
-        stream_count: camera.streamCount,
+        interface_id: string_from_raw(camera.interfaceIdString)
+            .map_err(|_| VmbError::InternalFault)?,
         access: camera.permittedAccess,
         permitted_access: AccessFlags(camera.permittedAccess),
     })
@@ -803,45 +597,6 @@ pub fn feature_int_increment_query(
     Ok(value)
 }
 
-pub fn feature_int_valid_value_set_query(
-    handle: &impl VmbHandle,
-    name: &str,
-) -> VmbResult<Vec<i64>> {
-    let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
-    let mut set_size: u32 = 0;
-    let buffer_size: u32 = 0;
-
-    // first call to identify size of value set
-    vmb_result(unsafe {
-        VmbFeatureIntValidValueSetQuery(
-            handle.as_raw(),
-            feature_name.as_ptr(),
-            std::ptr::null_mut(), // pass null pointer to buffer to only return buffer size in buffer_size
-            buffer_size,
-            &mut set_size,
-        )
-    })?;
-
-    if set_size == 0 {
-        return Ok(Vec::new());
-    }
-
-    let mut buffer: Vec<i64> = vec![0; set_size as usize];
-
-    // second call to populate buffer
-    vmb_result(unsafe {
-        VmbFeatureIntValidValueSetQuery(
-            handle.as_raw(),
-            feature_name.as_ptr(),
-            buffer.as_mut_ptr(),
-            buffer.len() as VmbUint32_t,
-            &mut set_size,
-        )
-    })?;
-
-    Ok(buffer)
-}
-
 pub fn feature_float_get(handle: &impl VmbHandle, name: &str) -> VmbResult<f64> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut value: f64 = 0.0;
@@ -895,7 +650,7 @@ pub fn feature_enum_get(handle: &impl VmbHandle, name: &str) -> VmbResult<String
     vmb_result(unsafe { VmbFeatureEnumGet(handle.as_raw(), feature_name.as_ptr(), &mut value) })?;
 
     if value.is_null() {
-        return Err(VmbError::NoData);
+        return Err(VmbError::InternalFault);
     }
 
     let value = string_from_raw(value).map_err(|_| VmbError::InternalFault)?;
@@ -1165,11 +920,8 @@ pub fn frame_from_buffer(buffer: &mut [u8]) -> Frame {
 }
 
 pub fn payload_size_get(handle: &impl VmbHandle) -> VmbResult<u32> {
-    let mut payload_size: u32 = 0 as VmbUint32_t;
-
-    vmb_result(unsafe { VmbPayloadSizeGet(handle.as_raw(), &mut payload_size) })?;
-
-    Ok(payload_size)
+    // Vimba_5_0 has no VmbPayloadSizeGet; PayloadSize is read as a regular integer feature.
+    feature_int_get(handle, "PayloadSize").map(|v| v as u32)
 }
 
 pub fn frame_announce(handle: &impl VmbHandle, frame: &Frame) -> VmbResult<()> {
@@ -1258,8 +1010,15 @@ pub fn convert_to_rgb8(
     let mut dest_image: VmbImage = unsafe { mem::zeroed() };
     dest_image.Size = mem::size_of::<VmbImage>() as u32;
     let rgb8_format = CString::new("RGB8").map_err(|_| VmbError::BadParameter)?;
+    let rgb8_format_len = rgb8_format.as_bytes().len() as VmbUint32_t;
     vmb_result(unsafe {
-        VmbSetImageInfoFromString(rgb8_format.as_ptr(), width, height, &mut dest_image)
+        VmbSetImageInfoFromString(
+            rgb8_format.as_ptr(),
+            rgb8_format_len,
+            width,
+            height,
+            &mut dest_image,
+        )
     })?;
 
     let mut rgb_buffer = vec![0u8; width as usize * height as usize * 3];
@@ -1301,7 +1060,7 @@ pub fn camera_settings_save(
     let size_of_settings: u32 = 0;
 
     vmb_result(unsafe {
-        VmbSettingsSave(
+        VmbCameraSettingsSave(
             handle.as_raw(),
             filepath.as_ptr(),
             settings,
@@ -1315,16 +1074,16 @@ pub fn camera_settings_save(
 pub fn camera_settings_load(
     handle: &impl VmbHandle,
     filepath: &str,
-    settings: &PersistSettings,
+    settings: &mut PersistSettings,
 ) -> VmbResult<()> {
     let filepath = CString::new(filepath).map_err(|_| VmbError::BadParameter)?;
     let size_of_settings = mem::size_of::<PersistSettings>() as VmbUint32_t;
 
     vmb_result(unsafe {
-        VmbSettingsLoad(
+        VmbCameraSettingsLoad(
             handle.as_raw(),
             filepath.as_ptr(),
-            settings as *const PersistSettings,
+            settings as *mut PersistSettings,
             size_of_settings,
         )
     })?;

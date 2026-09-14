@@ -1,2 +1,2 @@
-#include "/opt/VimbaX_2025-3/api/include/VmbC/VmbC.h"
-#include "/opt/VimbaX_2025-3/api/include/VmbImageTransform/VmbTransform.h"
+#include "/opt/Vimba_5_0/VimbaC/Include/VimbaC.h"
+#include "/opt/Vimba_5_0/VimbaImageTransform/Include/VmbTransform.h"
