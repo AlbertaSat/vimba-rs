@@ -1,34 +1,44 @@
 # vimba-rs
 
-This repository contains safe wrapper functions over raw bindings generated from the Vimba X 2025-3 VmbC API.
+This repository contains safe wrapper functions over raw bindings generated from the Vimba (VimbaC) 5.0 API.
 
+Note: this crate targets the older **Vimba 5.0** SDK (`VimbaC.h`), not VimbaX/VmbC. The two have
+different C APIs (VimbaX's `VmbC` has transport-layer/local-device/stream handles that Vimba 5.0
+does not, a `VmbStartup(pathConfiguration)` vs. Vimba 5.0's no-argument `VmbStartup()`, etc.), so
+bindings generated against one are not compatible with code written against the other.
 
 ## Setup
 
-1. Install the Vimba SDK through the website. It should be listed near the bottom for Linux64. As of June 23 2026, it should be named something similar to 'VimbaX_Setup-2026-1-Linux64.tar.gz': https://www.alliedvision.com/en/support/software-downloads/vimba-x-sdk/vimba-x 
+1. Install the Vimba 5.0 SDK for Linux64 from Allied Vision and unpack it to `/opt/Vimba_5_0`
+   (that absolute path is hard-coded into `wrapper.h` and `build.rs`; if you install elsewhere,
+   update both files to match).
 
-2. Unzip the installation tarball into somewhere nice and safe and cd into that directory. cd into the cti directory of the installation: `cd /opt/VimbaX_2025-3/cti/` (or whichever path you need to get into the cti dir)
+2. Register the GenTL transport layer(s) you need so the API can discover cameras. Each transport
+   layer under the SDK ships its own install script — for example, for USB cameras:
 
-3. Run the following bash scripts with current working directory in the cti dir: `sudo ./Install_GenTL_Path.sh; . Set_GenTL_Path.sh`
+   ```
+   cd /opt/Vimba_5_0/VimbaUSBTL
+   sudo ./Install.sh        # registers GENICAM_GENTL64_PATH system-wide (requires a reboot/relogin)
+   . ./SetGenTLPath.sh       # or: set GENICAM_GENTL64_PATH for the current shell only
+   ```
 
-*Example with VimbaX_2025-3:*
-```
-(base) oliveoil@oliveoil-ubuntu:/opt/VimbaX_2025-3/cti$ sudo ./Install_GenTL_Path.sh 
-Registering GENICAM_GENTL64_PATH for Vimba X
-Registering AVTUSBTL device types
-Done
-Please reboot before using the Transport Layers
-(base) oliveoil@oliveoil-ubuntu:/opt/VimbaX_2025-3/cti$ . Set_GenTL_Path.sh 
+   Do the same under `VimbaGigETL` if you need GigE camera support. `GENICAM_GENTL64_PATH` is a
+   colon-separated list of directories containing `.cti` files, e.g.:
 
-Setting the GENICAM_GENTL64_PATH to /opt/VimbaX_2025-3/cti for this shell only.
-  Done
-```
+   ```
+   export GENICAM_GENTL64_PATH=/opt/Vimba_5_0/VimbaUSBTL/CTI/x86_64bit:/opt/Vimba_5_0/VimbaGigETL/CTI/x86_64bit
+   ```
 
-4. Clone the repository AlbertaSat/vimba_rs
+   Unlike VimbaX, Vimba 5.0 has no camera-simulator transport layer — testing without hardware
+   attached isn't supported by this SDK.
 
-5. Find the path to api/lib inside your Vimba installation, and export LD_LIBRARY_PATH as the absolute path to that location: `export LD_LIBRARY_PATH=/opt/VimbaX_2025-3/api/lib:/opt/VimbaX_2025-3/bin`
+3. Clone the repository AlbertaSat/vimba_rs.
 
-6. To compile vimba_rs, cd into vimba_rs and run `cargo build`
+4. To compile vimba_rs, cd into vimba_rs and run `cargo build`. `build.rs` already points
+   `rustc-link-search`/`rustc-link-lib` at `/opt/Vimba_5_0/VimbaC/DynamicLib/x86_64bit` and
+   `/opt/Vimba_5_0/VimbaImageTransform/DynamicLib/x86_64bit`, and bakes an `-Wl,-rpath` for those
+   same directories into the built binaries — so `LD_LIBRARY_PATH` does not need to be set to run
+   binaries built from this crate.
 
 Example:
 ```
@@ -36,7 +46,7 @@ oliveoil@oliveoil-ubuntu:~/Desktop/AlbertaSat/ex3_software/fsw/vendor/vimba_rs$ 
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s
 ```
 
-7. To run some Rust program vimba_rs/examples/program.rs, run `cargo run --example program`
+5. To run some Rust program vimba_rs/examples/program.rs, run `cargo run --example program`
 
 Example:
 ```
@@ -44,5 +54,8 @@ Example:
    Compiling vimba-rs v0.1.0 (/home/oliveoil/Desktop/AlbertaSat/ex3_software/fsw/vendor/vimba_rs)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
      Running `/home/oliveoil/Desktop/AlbertaSat/ex3_software/target/debug/examples/query_version`
-VmbVersion { major: 1, minor: 2, patch: 0 }
+VmbVersion { major: 1, minor: 8, patch: 5 }
 ```
+
+Other examples available under `examples/`: `connect` (find/open the first camera and run an
+asynchronous capture) and `list_tl_layers` (list the interfaces currently visible to the API).
