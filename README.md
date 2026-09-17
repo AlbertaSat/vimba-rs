@@ -1,11 +1,6 @@
 # vimba-rs
 
-This repository contains safe wrapper functions over raw bindings generated from the Vimba (VimbaC) 5.0 API.
-
-Note: this crate targets the older **Vimba 5.0** SDK (`VimbaC.h`), not VimbaX/VmbC. The two have
-different C APIs (VimbaX's `VmbC` has transport-layer/local-device/stream handles that Vimba 5.0
-does not, a `VmbStartup(pathConfiguration)` vs. Vimba 5.0's no-argument `VmbStartup()`, etc.), so
-bindings generated against one are not compatible with code written against the other.
+Vimba 5.0 x86_64 bit version branch
 
 ## Setup
 
@@ -29,9 +24,6 @@ bindings generated against one are not compatible with code written against the 
    export GENICAM_GENTL64_PATH=/opt/Vimba_5_0/VimbaUSBTL/CTI/x86_64bit:/opt/Vimba_5_0/VimbaGigETL/CTI/x86_64bit
    ```
 
-   Unlike VimbaX, Vimba 5.0 has no camera-simulator transport layer — testing without hardware
-   attached isn't supported by this SDK.
-
 3. Clone the repository AlbertaSat/vimba_rs.
 
 4. To compile vimba_rs, cd into vimba_rs and run `cargo build`. `build.rs` already points
@@ -39,6 +31,8 @@ bindings generated against one are not compatible with code written against the 
    `/opt/Vimba_5_0/VimbaImageTransform/DynamicLib/x86_64bit`, and bakes an `-Wl,-rpath` for those
    same directories into the built binaries — so `LD_LIBRARY_PATH` does not need to be set to run
    binaries built from this crate.
+
+NOTE: always hit the ex3_software repo with a `git submodule init; git submodule update` to be on the correct branch for the git submodule repos
 
 Example:
 ```
