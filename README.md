@@ -30,6 +30,13 @@ Setting the GENICAM_GENTL64_PATH to /opt/VimbaX_2025-3/cti for this shell only.
 
 6. To compile vimba_rs, cd into vimba_rs and run `cargo build`
 
+Set `VIMBA_SDK_DIR` at compile time to the Vimba 5 SDK root containing `VimbaC` and `VimbaImageTransform` (default: `/opt/Vimba_5_0`). The library architecture is selected from the Rust target; optionally override it with `VIMBA_LIB_ARCH` (`x86_32bit`, `x86_64bit`, `arm_32bit`, or `arm_64bit`). These build settings use the Vimba 5 directory layout rather than the Vimba X layout shown above.
+
+ARM32 example (requires the Rust target and a configured cross linker):
+```sh
+VIMBA_SDK_DIR=/path/to/Vimba_5_0 cargo build --target armv7-unknown-linux-gnueabihf
+```
+
 Example:
 ```
 oliveoil@oliveoil-ubuntu:~/Desktop/AlbertaSat/ex3_software/fsw/vendor/vimba_rs$ cargo build
