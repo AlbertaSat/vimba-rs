@@ -535,7 +535,7 @@ pub fn list_feature_selected(handle: &impl VmbHandle, name: &str) -> VmbResult<V
         .collect::<VmbResult<Vec<FeatureInfo>>>()
 }
 
-pub fn feature_access_query(handle: &impl VmbHandle, name: &str) -> VmbResult<[i8; 2]> {
+pub fn feature_access_query(handle: &impl VmbHandle, name: &str) -> VmbResult<[c_char; 2]> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut is_readable = false as VmbBool_t;
     let mut is_writable = false as VmbBool_t;
