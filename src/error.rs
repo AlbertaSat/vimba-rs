@@ -43,46 +43,8 @@ pub enum VmbError {
     NotImplemented = VmbErrorType_VmbErrorNotImplemented,
     #[error("NotSupported")]
     NotSupported = VmbErrorType_VmbErrorNotSupported,
+    #[error("Incomplete")]
+    Incomplete = VmbErrorType_VmbErrorIncomplete,
     #[error("IO")]
     IO = VmbErrorType_VmbErrorIO,
-    #[error("ValidValueSetNotPresent")]
-    ValidValueSetNotPresent = VmbErrorType_VmbErrorValidValueSetNotPresent,
-    #[error("GenTLUnspecified")]
-    GenTLUnspecified = VmbErrorType_VmbErrorGenTLUnspecified,
-    #[error("Unspecified")]
-    Unspecified = VmbErrorType_VmbErrorUnspecified,
-    #[error("Busy")]
-    Busy = VmbErrorType_VmbErrorBusy,
-    #[error("NoData")]
-    NoData = VmbErrorType_VmbErrorNoData,
-    #[error("ParsingChunkData")]
-    ParsingChunkData = VmbErrorType_VmbErrorParsingChunkData,
-    #[error("InUse")]
-    InUse = VmbErrorType_VmbErrorInUse,
-    #[error("Unknown")]
-    Unknown = VmbErrorType_VmbErrorUnknown,
-    #[error("XML")]
-    XML = VmbErrorType_VmbErrorXml,
-    #[error("UnAvailable")]
-    UnAvailable = VmbErrorType_VmbErrorFeaturesUnavailable,
-    #[error("NotInitialized")]
-    NotInitialized = VmbErrorType_VmbErrorNotInitialized,
-    #[error("InvalidAddress")]
-    InvalidAddress = VmbErrorType_VmbErrorInvalidAddress,
-    #[error("AlreadyDone")]
-    AlreadyDone = VmbErrorType_VmbErrorAlready,
-    #[error("NoChunkData")]
-    NoChunkData = VmbErrorType_VmbErrorNoChunkData,
-    #[error("UserCallBack")]
-    UserCallBack = VmbErrorType_VmbErrorUserCallbackException,
-    #[error("TLNotFound")]
-    TLNotFound = VmbErrorType_VmbErrorTLNotFound,
-    #[error("Ambiguous")]
-    Ambiguous = VmbErrorType_VmbErrorAmbiguous,
-    #[error("RetriesExceeded")]
-    RetriesExceeded = VmbErrorType_VmbErrorRetriesExceeded,
-    #[error("InsufficientBufferCount")]
-    InsufficientBufferCount = VmbErrorType_VmbErrorInsufficientBufferCount,
-    #[error("Custom")]
-    Custom = VmbErrorType_VmbErrorCustom,
 }

@@ -1,21 +1,9 @@
-// use vimba_rs::vimba_rs::api::*;
-
-// fn main() -> Result<(),
-
-// use vimba_rs::api::*;
-// use vimba_rs::ffi::*;
-// use std::{mem};
-
-// use std::ffi::c_void;
-
 // this module will contain helper functions to use in the iris_handler
 mod vimba_api {
-    pub const CTI_PATH: &str = "/opt/VimbaX_2025-3/cti/VimbaCameraSimulatorTL.cti";
-
     // initialize vimba api
     pub fn initialize() {
         println!("called vimba_api::initialize()");
-        match vimba_rs::api::startup(Some(CTI_PATH)) {
+        match vimba_rs::api::startup() {
             Ok(()) => {
                 println!("Successfully started api");
             }
@@ -40,45 +28,30 @@ mod vimba_api {
 
         println!("{:#?}", first_camera);
         println!("id = {}", first_camera.id);
-        println!("extended_id = {}", first_camera.extended_id);
         println!("access = {:?}", first_camera.access);
         /*
         pub struct CameraInfo has the following fields:
         pub id: String,
-        pub extended_id: String,
         pub camera_name: String,
         pub model_name: String,
         pub serial_number: String,
-        pub transport_layer_handle: TransportLayerHandle,
-        pub interface_handle: InterfaceHandle,
-        pub local_device_handle: LocalDeviceHandle,
-        pub stream_handles: StreamHandles,
-        pub stream_count: u32,
-        pub access: AccessMode,
+        pub interface_id: String,
+        pub access: u32,
+        pub permitted_access: AccessFlags,
         */
         println!(
             "First camera found.
             id: {},
-            extended_id: {},
             camera_name: {},
             model_name: {},
             serial_number: {},
-            transport_layer_handle: {:?},
-            interface_handle: {:?},
-            local_device_handle: {:?},
-            stream_handles: {:?},
-            stream_count: {},
+            interface_id: {},
             access: {:?}",
             first_camera.id,
-            first_camera.extended_id,
             first_camera.camera_name,
             first_camera.model_name,
             first_camera.serial_number,
-            first_camera.transport_layer_handle,
-            first_camera.interface_handle,
-            first_camera.local_device_handle,
-            first_camera.stream_handles,
-            first_camera.stream_count,
+            first_camera.interface_id,
             first_camera.access,
         );
 
@@ -93,7 +66,6 @@ mod vimba_api {
 
     unsafe extern "C" fn frame_done_callback(
         camera_handle: *mut std::ffi::c_void,
-        _stream_handle: *mut std::ffi::c_void,
         frame: *mut vimba_rs::api::Frame,
     ) {
         println!("############# frame_done_callback");
@@ -564,15 +536,6 @@ fn main() {
                 //     }
                 // }
 
-                let camera_info = match vimba_rs::api::camera_info_query_by_handle(&camera_handle) {
-                    Ok(camera_info) => camera_info,
-                    Err(e) => {
-                        eprintln!("Failed to query camera info by handle: {e}");
-                        return;
-                    }
-                };
-                let device_handle = camera_info.local_device_handle; // we dont need to wrap this in an unsafe, bc alr defined in the api CameraInfo 
-
                 println!("TEST: CAPTURE ASYNCH");
                 match vimba_api::capture_asynchronous(&camera_handle, 1) {
                     Ok(()) => {
@@ -584,7 +547,7 @@ fn main() {
                 }
 
                 println!("TEST: LIST DEVICE FEATURES");
-                match vimba_rs::api::list_features(&device_handle) {
+                match vimba_rs::api::list_features(&camera_handle) {
                     Ok(features) => {
                         for f in &features {
                             println!(
@@ -601,7 +564,7 @@ fn main() {
                 }
 
                 println!("TEST: WRITE FEATURE");
-                match vimba_api::write_feature(&device_handle, "StreamSelector", "0") {
+                match vimba_api::write_feature(&camera_handle, "StreamSelector", "0") {
                     Ok(()) => {}
                     Err(e) => {
                         eprintln!("Failed to write feature: {e}");
@@ -616,45 +579,3 @@ fn main() {
 
     vimba_api::shutdown();
 }
-
-// fn main() -> Result<(), Box<dyn std::error::Error>> {
-//     println!("logging: startup");
-//     // before using any functions in the api, you need to initialize the api.
-//     match startup(Some("/opt/VimbaX_2025-3/cti/VimbaUSBTL.cti")) {
-//         Ok(()) => {
-//             println!("Successfully started api")
-//         }
-//         Err(e) => {
-//             eprintln!("Failed to start API: {e}");
-//         }
-//     }
-//     println!("logging: post startup");
-
-//     match cameras_list()
-//     let cam_info = cameras_list()?.into_iter().next().expect("no camera");
-//     let cam = camera_open(&cam_info.id, AccessMode::Full)?;
-
-//     let payload = payload_size_get(&cam)? as usize;
-//     let mut image_buffer = vec![0u8; payload];
-
-//     let mut frame: Frame = unsafe { mem::zeroed() };
-//     frame.buffer = image_buffer.as_mut_ptr() as *mut std::ffi::c_void;
-//     frame.bufferSize = payload as u32;
-
-//     frame_announce(&cam, &frame)?;
-//     capture_start(&cam)?;
-
-//     capture_frame_queue(&cam, &frame, None)?;
-//     capture_frame_wait(&cam, &frame, 2000)?;
-
-//     println!("frame received: id={}, width={}, height={}",
-//         frame.frameID, frame.width, frame.height);
-
-//     capture_queue_flush(&cam)?;
-//     capture_end(&cam)?;
-//     frame_revoke(&cam, &frame)?;
-//     camera_close(cam)?;
-//     shutdown();
-
-//     Ok(())
-// }
