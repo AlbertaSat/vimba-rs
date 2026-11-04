@@ -329,11 +329,11 @@ pub enum AccessMode {
     //a note from Olivia: each mode corresponds to 1 bit. camera.permittedAccess returns a number that fills in each bitfield.
     // might return 11 = b1011 = 8+ 4+ 1
     // do
-    None = VmbAccessModeType_VmbAccessModeNone, //0000
-    Full = VmbAccessModeType_VmbAccessModeFull, //0001
-    Read = VmbAccessModeType_VmbAccessModeRead, //0010
-    Unknown = VmbAccessModeType_VmbAccessModeUnknown, //0100
-    Exclusive = VmbAccessModeType_VmbAccessModeExclusive, //1000
+    None = VmbAccessModeType_VmbAccessModeNone,     //0000
+    Full = VmbAccessModeType_VmbAccessModeFull,     //0001
+    Read = VmbAccessModeType_VmbAccessModeRead,     //0010
+    Config = VmbAccessModeType_VmbAccessModeConfig, //0100
+    Lite = VmbAccessModeType_VmbAccessModeLite,     //1000
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -741,7 +741,7 @@ pub fn list_feature_selected(handle: &impl VmbHandle, name: &str) -> VmbResult<V
         .collect::<VmbResult<Vec<FeatureInfo>>>()
 }
 
-pub fn feature_access_query(handle: &impl VmbHandle, name: &str) -> VmbResult<[i8; 2]> {
+pub fn feature_access_query(handle: &impl VmbHandle, name: &str) -> VmbResult<[c_char; 2]> {
     let feature_name = CString::new(name).map_err(|_| VmbError::BadParameter)?;
     let mut is_readable = false as VmbBool_t;
     let mut is_writable = false as VmbBool_t;
