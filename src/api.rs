@@ -193,11 +193,11 @@ pub enum AccessMode {
     //a note from Olivia: each mode corresponds to 1 bit. camera.permittedAccess returns a number that fills in each bitfield.
     // might return 11 = b1011 = 8+ 4+ 1
     // do
-    None = VmbAccessModeType_VmbAccessModeNone, //0000
-    Full = VmbAccessModeType_VmbAccessModeFull, //0001
-    Read = VmbAccessModeType_VmbAccessModeRead, //0010
+    None = VmbAccessModeType_VmbAccessModeNone,     //0000
+    Full = VmbAccessModeType_VmbAccessModeFull,     //0001
+    Read = VmbAccessModeType_VmbAccessModeRead,     //0010
     Config = VmbAccessModeType_VmbAccessModeConfig, //0100
-    Lite = VmbAccessModeType_VmbAccessModeLite, //1000
+    Lite = VmbAccessModeType_VmbAccessModeLite,     //1000
 }
 
 #[derive(Debug, Copy, Clone)]
