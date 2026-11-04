@@ -3,6 +3,10 @@ use std::{ffi, str::Utf8Error};
 use crate::{error::VmbError, ffi::VmbBool_t, ffi::VmbError_t};
 
 pub fn string_from_raw(raw: *const ffi::c_char) -> Result<String, Utf8Error> {
+    // vimba leaves optional strings (e.g. unit, representation) as NULL
+    if raw.is_null() {
+        return Ok(String::new());
+    }
     unsafe { Ok(ffi::CStr::from_ptr(raw).to_str()?.to_string()) }
 }
 
