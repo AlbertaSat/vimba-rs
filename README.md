@@ -24,9 +24,19 @@ Setting the GENICAM_GENTL64_PATH to /opt/VimbaX_2025-3/cti for this shell only.
   Done
 ```
 
-4. Clone the repository AlbertaSat/vimba_rs
+4. Clone the repository AlbertaSat/vimba_rs. cd into vimba_rs.
 
-5. Find the path to api/lib inside your Vimba installation, and export LD_LIBRARY_PATH as the absolute path to that location: `export LD_LIBRARY_PATH=/opt/VimbaX_2025-3/api/lib:/opt/VimbaX_2025-3/bin`
+5. Find the path to api/lib inside your Vimba installation, and export LD_LIBRARY_PATH as the absolute path to that location: 
+
+```
+CURRENT_DIR=$(pwd)
+cd /opt/Vimba_5_0/VimbaUSBTL #location of Vimba repository
+sudo ./Install.sh; . SetGenTLPath.sh 
+export LD_LIBRARY_PATH=/opt/Vimba_5_0/VimbaC/DynamicLib/x86_64bit:/opt/Vimba_5_0/VimbaImageTransform/DynamicLib/x86_64bit:$LD_LIBRARY_PATH
+export GENICAM_GENTL64_PATH=/opt/sentech/lib:$GENICAM_GENTL64_PATH
+echo "LD_LIBRARY_PATH:" $LD_LIBRARY_PATH
+cd $CURRENT_DIR 
+```
 
 6. To compile vimba_rs, cd into vimba_rs and run `cargo build`
 
@@ -35,6 +45,7 @@ Set `VIMBA_SDK_DIR` at compile time to the Vimba 5 SDK root containing `VimbaC` 
 ARM32 example (requires the Rust target and a configured cross linker):
 ```sh
 VIMBA_SDK_DIR=/path/to/Vimba_5_0 cargo build --target armv7-unknown-linux-gnueabihf
+VIMBA_SDK_DIR=/opt/Vimba_5_0 cargo build 
 ```
 
 Example:
